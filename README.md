@@ -1,142 +1,246 @@
-# Carbon Footprint Tracker 🌱
+# 🌱 EcoFin Carbon - Premium Sustainable Finance Platform
 
-A modern web application that helps users understand the environmental impact of their everyday spending by estimating CO₂ emissions tied to each transaction. Built with inspiration from successful HackTX projects like [wampusfyi](https://github.com/siddharth-iyer1/wampusfyi) and [AIAIO](https://github.com/lryanle/aiaio).
+**Built for Capital One Hackathon** | **HackTX 2024**
 
-## Inspiration
+EcoFin Carbon is a comprehensive web application that estimates the CO₂ footprint of each user transaction and turns it into actionable, eco-friendly finance insights. Built with Capital One's Nessie API, Auth0 authentication, MongoDB Atlas, and a hybrid emissions engine.
 
-Understanding your carbon footprint through financial transactions can be challenging, especially with limited access to comprehensive emission data for everyday purchases. Popular financial platforms often fall short in providing environmental insights that users need. Driven by the success of crowdsourced data approaches like wampusfyi, we decided to address this challenge directly by creating a collaborative platform for carbon footprint tracking.
+## ✨ **Product Pitch**
 
-## What it does
+EcoFin Carbon helps people see the environmental impact of their spending and learn to finance life more sustainably. It analyzes transactions, estimates kgCO₂e, and surfaces smart suggestions and rewards to nudge greener choices—without losing sight of budgets and goals.
 
-Our platform encourages users to share their transaction data, creating a collaborative space where users can access comprehensive information about carbon emissions, spending patterns, and environmental impact. By consolidating this data, we build a robust dataset that provides insights typically unavailable to individual users.
+## 🏆 **Key Features**
 
-### Key Features:
+### **🔐 Authentication & Security**
+- **Auth0 SPA Integration** with JWT tokens
+- **Protected routes** with role-based access
+- **Enterprise-grade security** with helmet, CORS, and rate limiting
 
-* **Real-time Carbon Tracking**: Calculate CO₂ emissions for financial transactions
-* **Crowdsourced Data Collection**: Users contribute transaction data to improve accuracy
-* **Multiple Calculation Methods**: Unit-based, spend-based, and hybrid approaches
-* **Data Quality Metrics**: Verification system ensures reliable information
-* **Interactive Analytics**: Comprehensive dashboards with trends and insights
-* **Location-based Insights**: Geographic context for better understanding
+### **💳 Capital One Integration**
+- **Nessie API** for real transaction data
+- **Automatic sync** of purchase history
+- **Merchant normalization** and categorization
 
-## How we built it
+### **🌍 Hybrid Carbon Estimation Engine**
+- **Unit-based calculations** (gallons, kWh, passenger-miles)
+- **Spend-based calculations** (category averages)
+- **Specialized logic** for airlines, gas stations, utilities
+- **Confidence scoring** (high/medium/low)
 
-### Frontend Development (Inspired by AIAIO):
-We built a modern React application using Next.js 14 with TypeScript, following the successful patterns from the AIAIO project. The frontend features:
-- **Tailwind CSS** for responsive, modern styling
-- **Recharts** for interactive data visualizations
-- **Lucide React** for consistent iconography
-- **Component-based architecture** for maintainability
+### **🤖 AI-Powered Eco Coach**
+- **Claude 3 Sonnet** integration for personalized recommendations
+- **Context-aware responses** based on spending patterns
+- **Actionable suggestions** with impact estimates
+- **Chat history** and conversation management
 
-### Data Collection System (Inspired by wampusfyi):
-Following wampusfyi's crowdsourced approach, we implemented:
-- **User-submitted transaction data** with verification processes
-- **Merchant categorization** and automatic classification
-- **Data quality scoring** to ensure reliability
-- **Community-driven insights** based on aggregated data
+### **📊 Premium Analytics Dashboard**
+- **CarbonOrbit chart** - circular visualization of emissions by category
+- **Real-time metrics** with animated counters
+- **Trend analysis** and progress tracking
+- **Eco Score** calculation (A-F grading system)
 
-### Carbon Calculation Engine:
-We developed a sophisticated calculation system with:
-- **Unit-based factors**: EPA, ICAO, and lifecycle study data
-- **Spend-based factors**: Economic input-output multipliers
-- **Hybrid approach**: Combines both methods with confidence scoring
-- **Merchant mapping**: 50+ common businesses with category classification
+### **🎨 Portfolio-Inspired UI/UX**
+- **Framer Motion animations** with magnetic buttons and tilt cards
+- **Parallax hero** with floating particles
+- **Glass morphism** design language
+- **Responsive design** across all devices
 
-### Technology Stack:
-- **Frontend**: Next.js 14, React 18, TypeScript
-- **Styling**: Tailwind CSS with custom eco-friendly theme
-- **Charts**: Recharts for data visualization
-- **Icons**: Lucide React
-- **State Management**: React hooks and context
+## 🧱 **Tech Stack**
 
-## Project Structure
+### **Frontend**
+- **React 18** + **Vite** + **TypeScript**
+- **Tailwind CSS** with custom eco-friendly theme
+- **shadcn/ui** components with Radix primitives
+- **Framer Motion** for premium animations
+- **Recharts** for data visualization
+- **Zustand** for state management
 
+### **Backend**
+- **Node.js** + **Express** + **TypeScript**
+- **MongoDB Atlas** with Mongoose ODM
+- **Auth0 JWT** verification middleware
+- **Capital One Nessie API** integration
+- **Anthropic Claude** AI integration
+
+### **Database Models**
+- **User** - Auth0 profiles and preferences
+- **Transaction** - Nessie transaction data
+- **Emission** - Carbon footprint calculations
+- **Chat** - AI Coach conversation history
+
+## 🚀 **Getting Started**
+
+### **1. Prerequisites**
+- Node.js 18+ and npm
+- MongoDB Atlas account
+- Auth0 account
+- Capital One Nessie API key
+- Anthropic API key
+
+### **2. Installation**
+```bash
+# Clone the repository
+git clone <repository-url>
+cd ecofin-carbon
+
+# Install dependencies
+npm install
+cd src && npm install
+cd ../server && npm install
+cd ..
 ```
-├── app/                    # Next.js app directory
-│   ├── globals.css        # Global styles with eco-friendly theme
-│   ├── layout.tsx         # Root layout component
-│   └── page.tsx           # Main page with tab navigation
-├── components/            # React components
-│   ├── Dashboard.tsx      # Main dashboard with metrics
-│   ├── TransactionList.tsx # Transaction history with filtering
-│   ├── CarbonInsights.tsx  # Analytics and trend analysis
-│   ├── DataCollection.tsx  # Crowdsourced data submission
-│   └── Navigation.tsx      # Navigation component
-├── types/                 # TypeScript type definitions
-│   └── index.ts          # Enhanced type definitions
-├── utils/                 # Utility functions
-│   └── carbonCalculator.ts # Carbon calculation logic
-└── package.json          # Dependencies and scripts
+
+### **3. Environment Setup**
+```bash
+# Copy environment template
+cp env.example .env
+
+# Edit .env with your credentials:
+# - Auth0 domain, client ID, audience
+# - MongoDB Atlas connection string
+# - Capital One Nessie API key
+# - Anthropic API key
 ```
 
-## Carbon Calculation Methods
+### **4. Run the Application**
+```bash
+# Start both frontend and backend
+npm run dev
 
-### 1. Unit-Based Calculation (High Confidence)
-Used when transaction includes clear physical units:
-- **Fuel purchases**: Gallons × EPA emission factors
-- **Airline tickets**: Passenger-miles × ICAO factors
-- **Utility bills**: kWh × regional electricity factors
-- **Food items**: Kilograms × lifecycle study factors
+# Or run separately:
+# Frontend: cd src && npm run dev
+# Backend: cd server && npm run dev
+```
 
-### 2. Spend-Based Calculation (Medium Confidence)
-Used for most retail transactions:
-- **Merchant category mapping**: Automatic classification
-- **Lifecycle emission factors**: EXIOBASE and economic data
+### **5. Access the Application**
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8080
+- **Health Check**: http://localhost:8080/health
+
+## 📋 **API Endpoints**
+
+### **Authentication**
+- `GET /api/users/profile` - Get user profile
+- `POST /api/users/profile` - Create/update profile
+- `PUT /api/users/preferences` - Update preferences
+
+### **Transactions**
+- `GET /api/transactions/sync` - Sync from Nessie API
+- `GET /api/transactions` - Get user transactions
+- `GET /api/transactions/:id` - Get specific transaction
+
+### **Carbon Emissions**
+- `POST /api/emissions/calc` - Calculate emissions
+- `GET /api/emissions/summary` - Get emissions summary
+
+### **AI Coach**
+- `POST /api/coach` - Ask EcoCoach a question
+- `GET /api/coach/history` - Get chat history
+
+## 🧮 **Carbon Calculation Methods**
+
+### **1. Unit-Based (High Confidence)**
+- **Fuel**: Gallons × EPA emission factors
+- **Electricity**: kWh × regional grid intensity
+- **Air Travel**: Passenger-miles × ICAO factors
+- **Food**: Kilograms × lifecycle study factors
+
+### **2. Spend-Based (Medium Confidence)**
+- **Category mapping**: Automatic merchant classification
+- **Lifecycle factors**: EXIOBASE economic data
 - **Dollar amount × category factor**: Pragmatic estimation
 
-### 3. Hybrid Approach (Variable Confidence)
-Combines both methods with intelligent fallback:
-- **Prefers unit-based** when physical data available
-- **Falls back to spend-based** for retail transactions
-- **Confidence scoring** based on data quality and method
+### **3. Specialized Logic (Variable Confidence)**
+- **Gas stations**: Estimate gallons from amount
+- **Airlines**: Estimate passenger-miles from amount
+- **Utilities**: Direct energy consumption mapping
 
-## Data Sources & Quality
+## 🎨 **Design System**
 
-The application uses emission factors from authoritative sources:
-- **EPA**: Fuel and utility emissions
-- **ICAO**: Aviation emissions and passenger-mile data
-- **EXIOBASE**: Economic input-output multipliers
-- **Lifecycle Studies**: Food and product emissions
-- **Crowdsourced Data**: User-submitted transaction verification
+### **Color Palette**
+- **Primary**: Eco green (#22c55e)
+- **Secondary**: Carbon gray (#64748b)
+- **Accent**: Blue, purple, amber variants
+- **Glass**: White/10 backdrop blur
 
-## Getting Started
+### **Typography**
+- **Primary**: Inter (clean, modern)
+- **Monospace**: JetBrains Mono (data)
 
-1. **Install Dependencies**
-   ```bash
-   npm install
-   ```
+### **Animations**
+- **Magnetic buttons**: Cursor-following spring physics
+- **Tilt cards**: 3D perspective transforms
+- **Parallax scrolling**: Multi-layer depth
+- **Particle effects**: Floating eco-themed elements
 
-2. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
+## 🔒 **Security Features**
 
-3. **Open in Browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+- **JWT token verification** with Auth0
+- **Rate limiting** (100 requests/15min)
+- **CORS protection** with whitelist
+- **Helmet security headers**
+- **Input validation** and sanitization
+- **Error handling** with fallbacks
 
-4. **Explore Features**
-   - View your carbon footprint dashboard
-   - Browse transaction history
-   - Analyze insights and trends
-   - Contribute to our crowdsourced database
+## 📊 **Demo Workflow**
 
-## What's next for Carbon Footprint Tracker
+1. **Landing Page** → Beautiful parallax hero with animations
+2. **Auth0 Login** → Secure authentication flow
+3. **Dashboard** → Real-time carbon metrics and CarbonOrbit chart
+4. **Import Transactions** → Sync with Capital One Nessie API
+5. **Calculate Emissions** → Hybrid estimation engine
+6. **AI Coach** → Ask questions and get personalized recommendations
+7. **Insights** → Detailed analytics and trend analysis
 
-### Phase 1: Beta Testing and Data Collection
-Our immediate focus is on expanding our crowdsourced dataset through beta testing. We're concentrating on accumulating transaction data for common spending categories, ensuring users can access relevant and accurate carbon footprint information.
+## 🏁 **Hackathon Success Criteria**
 
-### Phase 2: Capital One API Integration
-Post-beta, we plan to integrate with the Capital One API for real-time transaction processing, automating carbon footprint calculations and providing seamless user experiences.
+### **✅ Innovation**
+- Hybrid carbon estimation engine
+- AI-powered sustainability coaching
+- Capital One Nessie API integration
+- Portfolio-inspired animations
 
-### Phase 3: Enhanced Analytics and Recommendations
-Our long-term vision includes implementing AI-powered recommendations for reducing carbon footprints, analyzing spending patterns, and forecasting environmental impact trends.
+### **✅ Impact**
+- Clear actions to reduce weekly emissions
+- Budget-conscious recommendations
+- Community-driven insights
 
-### Phase 4: Community Building and Expansion
-As our platform grows, we aim to foster a community of environmentally conscious users who actively contribute to our carbon footprint database, creating a self-sustaining ecosystem of environmental awareness.
+### **✅ UX Excellence**
+- Fast, beautiful, accessible interface
+- Confident storytelling in 2-3 min demo
+- Smooth animations and interactions
 
-## Contributing
+### **✅ Technical Excellence**
+- Secure authentication and API design
+- Modular, scalable architecture
+- Real data flow with error handling
+- Clean, maintainable code
 
-We welcome contributions from the community! Inspired by the collaborative spirit of HackTX projects:
+## 🚀 **Deployment**
+
+### **Frontend (Vercel)**
+```bash
+cd src
+npm run build
+# Deploy to Vercel
+```
+
+### **Backend (Render/Railway)**
+```bash
+cd server
+npm run build
+# Deploy to Render or Railway
+```
+
+## 📈 **Future Enhancements**
+
+- **Real-time notifications** for high-emission purchases
+- **Carbon offset marketplace** integration
+- **Social features** and community challenges
+- **Mobile app** development
+- **Advanced ML** for better predictions
+- **Multi-currency** and international support
+
+## 🤝 **Contributing**
 
 1. Fork the repository
 2. Create a feature branch
@@ -144,12 +248,19 @@ We welcome contributions from the community! Inspired by the collaborative spiri
 4. Add tests if applicable
 5. Submit a pull request
 
-## Acknowledgments
-
-This project draws inspiration from successful HackTX projects:
-- [wampusfyi](https://github.com/siddharth-iyer1/wampusfyi) - For crowdsourced data collection approach
-- [AIAIO](https://github.com/lryanle/aiaio) - For modern React/TypeScript architecture
-
-## License
+## 📄 **License**
 
 This project is licensed under the MIT License.
+
+## 🙏 **Acknowledgments**
+
+- **Capital One** for the Nessie API
+- **Auth0** for authentication services
+- **Anthropic** for Claude AI integration
+- **MongoDB** for database hosting
+- **HackTX** for the hackathon platform
+
+---
+
+**Built with ❤️ for a sustainable future** 🌱
+
