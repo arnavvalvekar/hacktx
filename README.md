@@ -89,19 +89,45 @@ cd ../server && npm install
 cd ..
 ```
 
-### **3. Environment Setup**
+### **3. Auth0 Setup**
+
+#### **3.1 Create Auth0 Application**
+1. Go to [Auth0 Dashboard](https://manage.auth0.com/)
+2. Create a new **Single Page Application**
+3. Configure the following settings:
+   - **Allowed Callback URLs**: `http://localhost:3000`
+   - **Allowed Logout URLs**: `http://localhost:3000`
+   - **Allowed Web Origins**: `http://localhost:3000`
+4. Save the **Domain** and **Client ID**
+
+#### **3.2 Create Auth0 API**
+1. In Auth0 Dashboard, go to **APIs** → **Create API**
+2. Set **Identifier**: `https://ecofin-carbon-api`
+3. Add optional scopes: `read:transactions`, `write:transactions`
+4. Save the **Identifier** (this becomes your audience)
+
+### **4. Environment Setup**
 ```bash
 # Copy environment template
 cp env.example .env
 
 # Edit .env with your credentials:
-# - Auth0 domain, client ID, audience
-# - MongoDB Atlas connection string
-# - Capital One Nessie API key
-# - Anthropic API key
+# Frontend variables:
+VITE_AUTH0_DOMAIN=your-domain.auth0.com
+VITE_AUTH0_CLIENT_ID=your-client-id
+VITE_AUTH0_AUDIENCE=https://ecofin-carbon-api
+VITE_API_BASE=http://localhost:8080/api
+
+# Backend variables:
+AUTH0_DOMAIN=your-domain.auth0.com
+JWT_AUDIENCE=https://ecofin-carbon-api
+JWT_ISSUER=https://your-domain.auth0.com/
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ecofin-carbon
+NESSIE_API_KEY=your-capital-one-nessie-api-key
+LLM_API_KEY=your-anthropic-or-openai-api-key
 ```
 
-### **4. Run the Application**
+### **5. Run the Application**
 ```bash
 # Start both frontend and backend
 npm run dev
@@ -111,10 +137,32 @@ npm run dev
 # Backend: cd server && npm run dev
 ```
 
-### **5. Access the Application**
+### **6. Access the Application**
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080
 - **Health Check**: http://localhost:8080/health
+
+### **7. Quick Local Verification**
+1. Visit http://localhost:3000
+2. Click **"Sign In"** button → Auth0 hosted page should appear
+3. Authenticate → redirect back to app with user data
+4. Navigate to protected routes (Dashboard, Transactions, etc.)
+5. Test API calls → server should accept JWT tokens and return data
+6. If token invalid, check environment variables in `.env`
+
+### **8. Auth0 Setup (seamless return-to)**
+1. In Auth0 create:
+   - **Application** type: Single Page App
+   - **API**: create identifier (e.g. https://ecofin-carbon-api)
+2. Allowed Callback URLs: `http://localhost:3000`
+   Allowed Logout URLs: `http://localhost:3000`
+   Allowed Web Origins: `http://localhost:3000`
+3. Populate `.env`:
+   - `VITE_AUTH0_DOMAIN=your-domain.auth0.com`
+   - `VITE_AUTH0_CLIENT_ID=...`
+   - `VITE_AUTH0_AUDIENCE=https://ecofin-carbon-api`
+4. Start app. Clicking **Login** returns you to the same page you started from.
+   Clicking **Logout** also returns you to the page where you clicked logout.
 
 ## 📋 **API Endpoints**
 

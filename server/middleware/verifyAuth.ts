@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import jwksClient from 'jwks-client'
 
 const client = jwksClient({
-  jwksUri: `https://${process.env.JWT_ISSUER}/.well-known/jwks.json`
+  jwksUri: `https://${process.env.AUTH0_DOMAIN || process.env.JWT_ISSUER?.replace('https://', '').replace('/', '')}/.well-known/jwks.json`
 })
 
 function getKey(header: any, callback: any) {
@@ -34,7 +34,7 @@ export const verifyAuth = async (req: AuthRequest, res: Response, next: NextFunc
     
     jwt.verify(token, getKey, {
       audience: process.env.JWT_AUDIENCE,
-      issuer: `https://${process.env.JWT_ISSUER}/`,
+      issuer: `https://${process.env.AUTH0_DOMAIN || process.env.JWT_ISSUER?.replace('https://', '').replace('/', '')}/`,
       algorithms: ['RS256']
     }, (err, decoded) => {
       if (err) {

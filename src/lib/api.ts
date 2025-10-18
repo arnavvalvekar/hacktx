@@ -1,28 +1,27 @@
-import axios from 'axios'
+import axios from "axios";
 import { useAuth0 } from '@auth0/auth0-react'
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || "/api";
 
+export function createAuthorizedClient(getToken: () => Promise<string>) {
+  const client = axios.create({ baseURL: API_BASE });
+  client.interceptors.request.use(async (config) => {
+    try {
+      const token = await getToken();
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {}
+    return config;
+  });
+  return client;
+}
+
+// Legacy hook for backward compatibility
 export const useApiClient = () => {
   const { getAccessTokenSilently } = useAuth0()
-
-  const apiClient = axios.create({
-    baseURL: API_BASE,
-    timeout: 10000,
-  })
-
-  // Add auth token to requests
-  apiClient.interceptors.request.use(async (config) => {
-    try {
-      const token = await getAccessTokenSilently()
-      config.headers.Authorization = `Bearer ${token}`
-    } catch (error) {
-      console.warn('Could not get access token:', error)
-    }
-    return config
-  })
-
-  return apiClient
+  return createAuthorizedClient(() => getAccessTokenSilently())
 }
 
 // API endpoints

@@ -1,4 +1,3 @@
-import React from 'react'
 import { motion } from 'framer-motion'
 import { HeroParallax } from '@/components/HeroParallax'
 import { TiltCard } from '@/components/TiltCard'
@@ -176,7 +175,7 @@ export default function Landing() {
                       size="lg"
                       variant="eco"
                       className="w-full"
-                      onClick={() => window.location.href = '/dashboard'}
+                      onClick={() => window.location.href = '/login'}
                     >
                       Get Started Now
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -209,7 +208,7 @@ export default function Landing() {
               size="lg"
               variant="outline"
               className="bg-white text-eco-600 hover:bg-eco-50 border-white"
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => window.location.href = '/login'}
             >
               Launch Dashboard
               <ArrowRight className="ml-2 h-4 w-4" />

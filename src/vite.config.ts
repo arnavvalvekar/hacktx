@@ -16,5 +16,6 @@ export default {
       },
     },
   },
+  envDir: '../', // Tell Vite to look for .env files in the parent directory
 }
 
