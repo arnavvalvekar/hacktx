@@ -3,15 +3,84 @@ import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TiltCard } from '@/components/TiltCard'
-import { Settings as SettingsIcon, User, Palette, Database, Shield, Bell, Globe, Key, CheckCircle } from 'lucide-react'
+import { Settings as SettingsIcon, User, Palette, Database, Shield, Bell, Globe, Key, CheckCircle, Save } from 'lucide-react'
 import { nessieService } from '@/services/nessieService'
+import { useAuth0 } from '@auth0/auth0-react'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function Settings() {
+  const { user, isAuthenticated } = useAuth0()
+  const { toast } = useToast()
   const [nessieStatus, setNessieStatus] = useState<any>(null)
+  const [settings, setSettings] = useState({
+    theme: 'light',
+    language: 'English',
+    animations: true,
+    autoSync: true,
+    syncFrequency: 'Daily',
+    dataSharing: 'Minimal',
+    analytics: false,
+    twoFactorAuth: true,
+    emailNotifications: true,
+    pushNotifications: false,
+    goalReminders: 'Weekly',
+    country: 'United States',
+    currency: 'USD',
+    timeZone: 'EST'
+  })
+  const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     loadNessieStatus()
+    loadSettings()
   }, [])
+
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('ecofin-settings')
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings)
+        setSettings(prev => ({ ...prev, ...parsedSettings }))
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error)
+    }
+  }
+
+  const saveSettings = () => {
+    try {
+      localStorage.setItem('ecofin-settings', JSON.stringify(settings))
+      setHasChanges(false)
+      toast({
+        title: "Settings Saved",
+        description: "Your preferences have been saved successfully.",
+      })
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const updateSetting = (key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }))
+    setHasChanges(true)
+  }
+
+  const toggleTheme = () => {
+    const newTheme = settings.theme === 'light' ? 'dark' : 'light'
+    updateSetting('theme', newTheme)
+    
+    // Apply theme to document
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
 
   const loadNessieStatus = () => {
     try {
@@ -34,14 +103,28 @@ export default function Settings() {
     }
   }
 
+
   const settingsSections = [
     {
       title: "Profile Settings",
       description: "Manage your Auth0 profile and personal information",
       icon: User,
       items: [
-        { label: "Email", value: "user@example.com", type: "text" },
-        { label: "Name", value: "John Doe", type: "text" },
+        { 
+          label: "Email", 
+          value: user?.email || "Not available", 
+          type: "text" 
+        },
+        { 
+          label: "Name", 
+          value: user?.name || "User", 
+          type: "text" 
+        },
+        { 
+          label: "User ID", 
+          value: user?.sub || "Not available", 
+          type: "text" 
+        },
         { label: "Avatar", value: "Change Profile Picture", type: "button" }
       ]
     },
@@ -50,9 +133,26 @@ export default function Settings() {
       description: "Customize your theme and visual preferences",
       icon: Palette,
       items: [
-        { label: "Theme", value: "Light", type: "select", options: ["Light", "Dark", "Auto"] },
-        { label: "Language", value: "English", type: "select", options: ["English", "Spanish", "French"] },
-        { label: "Animations", value: "Enabled", type: "toggle" }
+        { 
+          label: "Theme", 
+          value: settings.theme, 
+          type: "select", 
+          options: ["Light", "Dark"], 
+          onChange: (value: string) => updateSetting('theme', value.toLowerCase())
+        },
+        { 
+          label: "Language", 
+          value: settings.language, 
+          type: "select", 
+          options: ["English", "Spanish", "French"],
+          onChange: (value: string) => updateSetting('language', value)
+        },
+        { 
+          label: "Animations", 
+          value: settings.animations ? "Enabled" : "Disabled", 
+          type: "toggle",
+          onChange: () => updateSetting('animations', !settings.animations)
+        }
       ]
     },
     {
@@ -81,8 +181,19 @@ export default function Settings() {
           value: nessieStatus?.totalCarbonFootprint ? `${nessieStatus.totalCarbonFootprint.toFixed(2)} kg CO₂` : "0.00 kg CO₂", 
           type: "text" 
         },
-        { label: "Auto Sync", value: "Enabled", type: "toggle" },
-        { label: "Sync Frequency", value: "Daily", type: "select", options: ["Hourly", "Daily", "Weekly"] }
+        { 
+          label: "Auto Sync", 
+          value: settings.autoSync ? "Enabled" : "Disabled", 
+          type: "toggle",
+          onChange: () => updateSetting('autoSync', !settings.autoSync)
+        },
+        { 
+          label: "Sync Frequency", 
+          value: settings.syncFrequency, 
+          type: "select", 
+          options: ["Hourly", "Daily", "Weekly"],
+          onChange: (value: string) => updateSetting('syncFrequency', value)
+        }
       ]
     },
     {
@@ -90,9 +201,25 @@ export default function Settings() {
       description: "Manage your privacy settings and security preferences",
       icon: Shield,
       items: [
-        { label: "Data Sharing", value: "Minimal", type: "select", options: ["None", "Minimal", "Full"] },
-        { label: "Analytics", value: "Disabled", type: "toggle" },
-        { label: "Two-Factor Auth", value: "Enabled", type: "toggle" }
+        { 
+          label: "Data Sharing", 
+          value: settings.dataSharing, 
+          type: "select", 
+          options: ["None", "Minimal", "Full"],
+          onChange: (value: string) => updateSetting('dataSharing', value)
+        },
+        { 
+          label: "Analytics", 
+          value: settings.analytics ? "Enabled" : "Disabled", 
+          type: "toggle",
+          onChange: () => updateSetting('analytics', !settings.analytics)
+        },
+        { 
+          label: "Two-Factor Auth", 
+          value: settings.twoFactorAuth ? "Enabled" : "Disabled", 
+          type: "toggle",
+          onChange: () => updateSetting('twoFactorAuth', !settings.twoFactorAuth)
+        }
       ]
     },
     {
@@ -100,9 +227,25 @@ export default function Settings() {
       description: "Configure how you receive updates and alerts",
       icon: Bell,
       items: [
-        { label: "Email Notifications", value: "Enabled", type: "toggle" },
-        { label: "Push Notifications", value: "Disabled", type: "toggle" },
-        { label: "Goal Reminders", value: "Weekly", type: "select", options: ["Daily", "Weekly", "Monthly"] }
+        { 
+          label: "Email Notifications", 
+          value: settings.emailNotifications ? "Enabled" : "Disabled", 
+          type: "toggle",
+          onChange: () => updateSetting('emailNotifications', !settings.emailNotifications)
+        },
+        { 
+          label: "Push Notifications", 
+          value: settings.pushNotifications ? "Enabled" : "Disabled", 
+          type: "toggle",
+          onChange: () => updateSetting('pushNotifications', !settings.pushNotifications)
+        },
+        { 
+          label: "Goal Reminders", 
+          value: settings.goalReminders, 
+          type: "select", 
+          options: ["Daily", "Weekly", "Monthly"],
+          onChange: (value: string) => updateSetting('goalReminders', value)
+        }
       ]
     },
     {
@@ -110,9 +253,27 @@ export default function Settings() {
       description: "Set your location and regional preferences",
       icon: Globe,
       items: [
-        { label: "Country", value: "United States", type: "select", options: ["United States", "Canada", "United Kingdom"] },
-        { label: "Currency", value: "USD", type: "select", options: ["USD", "CAD", "GBP"] },
-        { label: "Time Zone", value: "EST", type: "select", options: ["EST", "PST", "CST", "MST"] }
+        { 
+          label: "Country", 
+          value: settings.country, 
+          type: "select", 
+          options: ["United States", "Canada", "United Kingdom"],
+          onChange: (value: string) => updateSetting('country', value)
+        },
+        { 
+          label: "Currency", 
+          value: settings.currency, 
+          type: "select", 
+          options: ["USD", "CAD", "GBP"],
+          onChange: (value: string) => updateSetting('currency', value)
+        },
+        { 
+          label: "Time Zone", 
+          value: settings.timeZone, 
+          type: "select", 
+          options: ["EST", "PST", "CST", "MST"],
+          onChange: (value: string) => updateSetting('timeZone', value)
+        }
       ]
     }
   ]
@@ -166,15 +327,22 @@ export default function Settings() {
                           </span>
                           <div className="flex items-center gap-2">
                             {item.type === 'toggle' ? (
-                              <div className={`w-10 h-6 rounded-full transition-colors ${
-                                item.value === 'Enabled' ? 'bg-eco-500' : 'bg-carbon-300'
-                              }`}>
+                              <div 
+                                className={`w-10 h-6 rounded-full transition-colors cursor-pointer ${
+                                  item.value === 'Enabled' ? 'bg-eco-500' : 'bg-carbon-300'
+                                }`}
+                                onClick={item.onChange}
+                              >
                                 <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
                                   item.value === 'Enabled' ? 'translate-x-5' : 'translate-x-1'
                                 } mt-1`} />
                               </div>
                             ) : item.type === 'select' ? (
-                              <select className="text-sm border border-carbon-200 rounded px-2 py-1 bg-white">
+                              <select 
+                                className="text-sm border border-carbon-200 rounded px-2 py-1 bg-white"
+                                value={item.value}
+                                onChange={(e) => item.onChange?.(e.target.value)}
+                              >
                                 {item.options?.map(option => (
                                   <option key={option} value={option}>
                                     {option}
@@ -219,8 +387,14 @@ export default function Settings() {
           transition={{ duration: 0.6, delay: 0.8 }}
           className="mt-8 flex justify-center"
         >
-          <Button size="lg" className="bg-eco-500 hover:bg-eco-600">
-            Save Changes
+          <Button 
+            size="lg" 
+            className={`${hasChanges ? 'bg-eco-500 hover:bg-eco-600' : 'bg-carbon-300 cursor-not-allowed'} transition-colors`}
+            onClick={saveSettings}
+            disabled={!hasChanges}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {hasChanges ? 'Save Changes' : 'No Changes'}
           </Button>
         </motion.div>
 
@@ -244,13 +418,87 @@ export default function Settings() {
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4">
-                  <Button variant="outline">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const dataStr = JSON.stringify(settings, null, 2)
+                      const dataBlob = new Blob([dataStr], { type: 'application/json' })
+                      const url = URL.createObjectURL(dataBlob)
+                      const link = document.createElement('a')
+                      link.href = url
+                      link.download = 'ecofin-settings.json'
+                      link.click()
+                      URL.revokeObjectURL(url)
+                      toast({
+                        title: "Settings Exported",
+                        description: "Your settings have been downloaded.",
+                      })
+                    }}
+                  >
                     Export Settings
                   </Button>
-                  <Button variant="outline">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const input = document.createElement('input')
+                      input.type = 'file'
+                      input.accept = '.json'
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0]
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onload = (e) => {
+                            try {
+                              const importedSettings = JSON.parse(e.target?.result as string)
+                              setSettings(prev => ({ ...prev, ...importedSettings }))
+                              setHasChanges(true)
+                              toast({
+                                title: "Settings Imported",
+                                description: "Your settings have been imported successfully.",
+                              })
+                            } catch (error) {
+                              toast({
+                                title: "Import Error",
+                                description: "Failed to import settings. Please check the file format.",
+                                variant: "destructive",
+                              })
+                            }
+                          }
+                          reader.readAsText(file)
+                        }
+                      }
+                      input.click()
+                    }}
+                  >
                     Import Settings
                   </Button>
-                  <Button variant="destructive">
+                  <Button 
+                    variant="destructive"
+                    onClick={() => {
+                      const defaultSettings = {
+                        theme: 'light',
+                        language: 'English',
+                        animations: true,
+                        autoSync: true,
+                        syncFrequency: 'Daily',
+                        dataSharing: 'Minimal',
+                        analytics: false,
+                        twoFactorAuth: true,
+                        emailNotifications: true,
+                        pushNotifications: false,
+                        goalReminders: 'Weekly',
+                        country: 'United States',
+                        currency: 'USD',
+                        timeZone: 'EST'
+                      }
+                      setSettings(defaultSettings)
+                      setHasChanges(true)
+                      toast({
+                        title: "Settings Reset",
+                        description: "Your settings have been reset to defaults.",
+                      })
+                    }}
+                  >
                     Reset to Defaults
                   </Button>
                 </div>

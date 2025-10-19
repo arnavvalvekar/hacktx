@@ -13,47 +13,83 @@ import {
   Users, 
   Shield,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  AlertTriangle,
+  Target,
+  Award,
+  Eye,
+  Brain,
+  Heart,
+  Lightbulb,
+  TrendingUp
 } from 'lucide-react'
 
 export default function Landing() {
   const navigate = useNavigate()
+
+  const problems = [
+    {
+      icon: AlertTriangle,
+      title: 'Lack of Awareness',
+      description: 'More than two-thirds of global greenhouse-gas emissions are linked to unaware consumption.',
+      statistic: '67%',
+      color: 'text-red-500',
+      bgColor: 'bg-red-50'
+    },
+    {
+      icon: Eye,
+      title: 'No Accessible Tools',
+      description: 'Consumers struggle to estimate even relative carbon emissions of everyday behaviors.',
+      statistic: 'Hard to Track',
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-50'
+    },
+    {
+      icon: Target,
+      title: 'Hard to Take Action',
+      description: 'Spending data stays disconnected from impact based on carbon emissions.',
+      statistic: 'Disconnected',
+      color: 'text-yellow-500',
+      bgColor: 'bg-yellow-50'
+    }
+  ]
+
   const features = [
     {
-      icon: BarChart3,
-      title: 'Real-time Carbon Tracking',
-      description: 'Calculate CO₂ emissions for every transaction using our hybrid estimation engine.',
+      icon: Zap,
+      title: 'Automated Carbon Tracking',
+      description: 'Instantly see the CO₂ impact of your spending — no manual input needed.',
       color: 'text-blue-500'
     },
     {
-      icon: Zap,
-      title: 'Capital One Integration',
-      description: 'Seamlessly sync with your Capital One accounts via the Nessie API.',
-      color: 'text-yellow-500'
-    },
-    {
-      icon: Globe,
-      title: 'AI-Powered Insights',
-      description: 'Get personalized recommendations to reduce your environmental impact.',
+      icon: Shield,
+      title: 'Bank Integration',
+      description: 'Connect securely with your bank through the Nessie API to analyze real transactions.',
       color: 'text-green-500'
     },
     {
-      icon: Users,
-      title: 'Community Driven',
-      description: 'Join a community of environmentally conscious individuals making a difference.',
+      icon: Brain,
+      title: 'Personalized Insights',
+      description: 'Get a breakdown of which purchases contribute most to your footprint.',
       color: 'text-purple-500'
     },
     {
-      icon: Shield,
-      title: 'Secure & Private',
-      description: 'Your financial data is protected with enterprise-grade security.',
-      color: 'text-red-500'
+      icon: Lightbulb,
+      title: 'Actionable Recommendations',
+      description: 'Discover greener alternatives and ways to offset your emissions.',
+      color: 'text-yellow-500'
     },
     {
-      icon: TrendingDown,
-      title: 'Track Progress',
-      description: 'Monitor your carbon footprint reduction over time with detailed analytics.',
+      icon: BarChart3,
+      title: 'Visual Dashboard',
+      description: 'Interactive charts help you visualize your carbon impact over time.',
       color: 'text-indigo-500'
+    },
+    {
+      icon: Award,
+      title: 'Gamified Sustainability',
+      description: 'Earn badges or streaks for lowering your emissions each month.',
+      color: 'text-red-500'
     }
   ]
 
@@ -70,6 +106,58 @@ export default function Landing() {
       {/* Hero Section */}
       <HeroParallax />
 
+      {/* Problem Statement Section */}
+      <section id="problem" className="py-20 bg-gradient-to-b from-white to-carbon-50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-carbon-900 mb-6">
+              What's the <span className="gradient-text">Problem</span>?
+            </h2>
+            <p className="text-xl text-carbon-600 max-w-3xl mx-auto">
+              The current state of carbon awareness and tracking presents significant challenges 
+              that prevent individuals from making informed environmental decisions.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {problems.map((problem, index) => (
+              <motion.div
+                key={problem.title}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.2 }}
+                viewport={{ once: true }}
+              >
+                <TiltCard className="h-full">
+                  <Card className={`h-full glass-card hover:shadow-xl transition-all duration-300 ${problem.bgColor}`}>
+                    <CardHeader className="text-center">
+                      <div className="w-16 h-16 bg-gradient-to-r from-eco-500 to-eco-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <problem.icon className={`h-8 w-8 text-white`} />
+                      </div>
+                      <div className={`text-3xl font-bold ${problem.color} mb-2`}>
+                        {problem.statistic}
+                      </div>
+                      <CardTitle className="text-xl text-carbon-900">{problem.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-base leading-relaxed text-carbon-700">
+                        {problem.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </TiltCard>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-20 bg-gradient-to-b from-carbon-50 to-white">
         <div className="container mx-auto px-4">
@@ -81,11 +169,11 @@ export default function Landing() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-carbon-900 mb-6">
-              Why Choose <span className="gradient-text">EcoFin Carbon</span>?
+              Why <span className="gradient-text">EcoFin</span>?
             </h2>
             <p className="text-xl text-carbon-600 max-w-3xl mx-auto">
-              We combine cutting-edge technology with environmental science to help you make 
-              informed financial decisions that benefit both your wallet and the planet.
+              We bridge the gap between finance and sustainability with cutting-edge technology 
+              that makes carbon tracking simple, transparent, and accessible.
             </p>
           </motion.div>
 
@@ -117,8 +205,45 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Benefits Section */}
+      {/* Mission Statement Section */}
       <section className="py-20 bg-gradient-to-b from-white to-eco-50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="max-w-4xl mx-auto text-center"
+          >
+            <div className="w-20 h-20 bg-gradient-to-r from-eco-500 to-eco-600 rounded-full flex items-center justify-center mx-auto mb-8">
+              <Heart className="h-10 w-10 text-white" />
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-carbon-900 mb-8">
+              Our <span className="gradient-text">Mission</span>
+            </h2>
+            <div className="space-y-6 text-lg text-carbon-700 leading-relaxed">
+              <p>
+                At <strong>EcoFIN</strong>, our mission is to bridge the gap between finance and sustainability 
+                by creating an empowering, user-friendly platform that helps individuals understand the 
+                environmental impact of their spending.
+              </p>
+              <p>
+                We strive to make carbon tracking simple, transparent, and accessible—turning everyday 
+                purchases into opportunities for positive climate action.
+              </p>
+              <p>
+                While we're starting with personal finance, our solution is built to support anyone seeking 
+                to make more sustainable choices. By fostering trust, clarity, and data-driven insight, 
+                EcoFIN is committed to helping users take control of their carbon footprint and contribute 
+                to a greener, more conscious world.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="py-20 bg-gradient-to-b from-eco-50 to-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -220,18 +345,44 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 bg-carbon-900 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Leaf className="h-6 w-6 text-eco-500" />
-            <span className="text-xl font-bold">EcoFin Carbon</span>
+      <footer className="py-16 bg-carbon-900 text-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            <div className="text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                <Leaf className="h-6 w-6 text-eco-500" />
+                <span className="text-xl font-bold">EcoFin</span>
+              </div>
+              <p className="text-carbon-400">
+                Bridging finance and sustainability for a greener future.
+              </p>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+              <div className="space-y-2">
+                <p className="text-carbon-400">Features</p>
+                <p className="text-carbon-400">Mission</p>
+                <p className="text-carbon-400">Contact</p>
+              </div>
+            </div>
+            <div className="text-center md:text-right">
+              <h3 className="text-lg font-semibold mb-4">Connect</h3>
+              <p className="text-carbon-400 mb-2">Ready to start your journey?</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-eco-500 text-eco-500 hover:bg-eco-500 hover:text-white"
+                onClick={() => navigate('/login')}
+              >
+                Get Started
+              </Button>
+            </div>
           </div>
-          <p className="text-carbon-400 mb-4">
-            Making sustainable finance accessible to everyone.
-          </p>
-          <p className="text-sm text-carbon-500">
-            © 2024 EcoFin Carbon. Built for Capital One Hackathon.
-          </p>
+          <div className="border-t border-carbon-700 pt-8 text-center">
+            <p className="text-sm text-carbon-500">
+              © 2024 EcoFin. Built for Capital One Hackathon. Making sustainable finance accessible to everyone.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

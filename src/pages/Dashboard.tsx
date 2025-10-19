@@ -8,25 +8,178 @@ import { CarbonOrbit } from '@/components/CarbonOrbit'
 import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
 import { LogoutButton } from '@/components/LogoutButton'
-import { Leaf, TrendingUp, Calendar, Zap, RefreshCw, DollarSign, CreditCard, Receipt, MessageCircle } from 'lucide-react'
+import { useAuth0 } from '@auth0/auth0-react'
+import { Leaf, TrendingUp, Calendar, Zap, RefreshCw, DollarSign, CreditCard, MessageCircle, Settings, Target, Plus, CheckCircle, Award } from 'lucide-react'
 import { formatCarbon } from '@/lib/utils'
 import { nessieService } from '@/services/nessieService'
-import type { AccountSummary, TransactionSummary, BillSummary } from '@/types/nessieTypes'
+import type { AccountSummary, TransactionSummary } from '@/types/nessieTypes'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const apiClient = useApiClient()
   const { toast } = useToast()
+  const { user } = useAuth0()
   const [isLoading, setIsLoading] = useState(true)
   const [emissionsSummary, setEmissionsSummary] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null)
   const [transactionSummary, setTransactionSummary] = useState<TransactionSummary | null>(null)
-  const [billSummary, setBillSummary] = useState<BillSummary | null>(null)
+  const [activeTab, setActiveTab] = useState<'overview' | 'goals'>('overview')
+  const [goals, setGoals] = useState<Array<{
+    id: string
+    title: string
+    description: string
+    targetValue: number
+    currentValue: number
+    unit: string
+    category: string
+    completed: boolean
+    createdAt: Date
+  }>>([])
+  const [newGoal, setNewGoal] = useState({ title: '', description: '', targetValue: 0, unit: 'kg CO2e', category: 'carbon' })
 
   useEffect(() => {
     loadDashboardData()
+    loadGoals()
   }, [])
+
+  const loadGoals = () => {
+    try {
+      const savedGoals = localStorage.getItem('ecofin-goals')
+      if (savedGoals) {
+        const parsedGoals = JSON.parse(savedGoals).map((goal: any) => ({
+          ...goal,
+          createdAt: new Date(goal.createdAt)
+        }))
+        setGoals(parsedGoals)
+      } else {
+        // Default goals for Vishal
+        const defaultGoals = [
+          {
+            id: '1',
+            title: 'Reduce Monthly Carbon Footprint',
+            description: 'Lower my carbon emissions by 20% this month',
+            targetValue: 20,
+            currentValue: 8,
+            unit: '%',
+            category: 'carbon',
+            completed: false,
+            createdAt: new Date()
+          },
+          {
+            id: '2',
+            title: 'Sustainable Transportation',
+            description: 'Use public transport or bike for 15 days this month',
+            targetValue: 15,
+            currentValue: 7,
+            unit: 'days',
+            category: 'transportation',
+            completed: false,
+            createdAt: new Date()
+          }
+        ]
+        setGoals(defaultGoals)
+        localStorage.setItem('ecofin-goals', JSON.stringify(defaultGoals))
+      }
+    } catch (error) {
+      console.error('Error loading goals:', error)
+    }
+  }
+
+  const addGoal = () => {
+    if (!newGoal.title.trim()) return
+    
+    const goal = {
+      id: Date.now().toString(),
+      title: newGoal.title,
+      description: newGoal.description,
+      targetValue: newGoal.targetValue,
+      currentValue: 0,
+      unit: newGoal.unit,
+      category: newGoal.category,
+      completed: false,
+      createdAt: new Date()
+    }
+    
+    const updatedGoals = [...goals, goal]
+    setGoals(updatedGoals)
+    localStorage.setItem('ecofin-goals', JSON.stringify(updatedGoals))
+    
+    setNewGoal({ title: '', description: '', targetValue: 0, unit: 'kg CO2e', category: 'carbon' })
+    toast({
+      title: "Goal Added",
+      description: "Your new sustainability goal has been added!",
+    })
+  }
+
+  const toggleGoalComplete = (goalId: string) => {
+    const updatedGoals = goals.map(goal => 
+      goal.id === goalId ? { ...goal, completed: !goal.completed } : goal
+    )
+    setGoals(updatedGoals)
+    localStorage.setItem('ecofin-goals', JSON.stringify(updatedGoals))
+  }
+
+  const deleteGoal = (goalId: string) => {
+    const updatedGoals = goals.filter(goal => goal.id !== goalId)
+    setGoals(updatedGoals)
+    localStorage.setItem('ecofin-goals', JSON.stringify(updatedGoals))
+    toast({
+      title: "Goal Deleted",
+      description: "Goal has been removed successfully.",
+    })
+  }
+
+  const calculateSustainabilityGrade = () => {
+    const totalCarbon = nessieService.getTotalCarbonFootprint()
+    const transactionCount = transactionSummary?.totalTransactions || 0
+    
+    if (transactionCount === 0) return { grade: 'N/A', score: 0, color: '#6b7280' }
+    
+    // Calculate average carbon per transaction
+    const avgCarbonPerTransaction = totalCarbon / transactionCount
+    
+    // Grade based on average carbon per transaction (lower is better)
+    let grade: string
+    let score: number
+    let color: string
+    
+    if (avgCarbonPerTransaction <= 0.5) {
+      grade = 'A+'
+      score = 95
+      color = '#22c55e' // Green
+    } else if (avgCarbonPerTransaction <= 1.0) {
+      grade = 'A'
+      score = 90
+      color = '#22c55e' // Green
+    } else if (avgCarbonPerTransaction <= 2.0) {
+      grade = 'B+'
+      score = 85
+      color = '#84cc16' // Light green
+    } else if (avgCarbonPerTransaction <= 3.0) {
+      grade = 'B'
+      score = 80
+      color = '#84cc16' // Light green
+    } else if (avgCarbonPerTransaction <= 4.0) {
+      grade = 'C+'
+      score = 75
+      color = '#eab308' // Yellow
+    } else if (avgCarbonPerTransaction <= 5.0) {
+      grade = 'C'
+      score = 70
+      color = '#eab308' // Yellow
+    } else if (avgCarbonPerTransaction <= 7.0) {
+      grade = 'D'
+      score = 60
+      color = '#f97316' // Orange
+    } else {
+      grade = 'F'
+      score = 50
+      color = '#ef4444' // Red
+    }
+    
+    return { grade, score, color }
+  }
 
   const loadDashboardData = async () => {
     try {
@@ -49,17 +202,14 @@ export default function Dashboard() {
       // Load Nessie mock data
       const accountData = nessieService.getAccountSummary()
       const transactionData = nessieService.getTransactionSummary()
-      const billData = nessieService.getBillSummary()
       
       console.log('✅ DASHBOARD DEBUG: Nessie data loaded:', {
         accountData,
-        transactionData,
-        billData
+        transactionData
       });
       
       setAccountSummary(accountData)
       setTransactionSummary(transactionData)
-      setBillSummary(billData)
       
       console.log('✅ DASHBOARD DEBUG: Dashboard data loaded successfully');
       
@@ -172,13 +322,21 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-4xl font-bold text-carbon-900 mb-2">
-                Welcome back, <span className="gradient-text">{userProfile?.name || 'User'}</span>
+                Welcome back, <span className="gradient-text">{user?.name || 'User'}</span>
               </h1>
               <p className="text-carbon-600 text-lg">
                 Track your carbon footprint and make sustainable financial decisions
               </p>
             </div>
             <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border-eco-500 text-eco-600 hover:bg-eco-50"
+                onClick={() => navigate('/settings')}
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
               <LogoutButton className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
                 Logout
               </LogoutButton>
@@ -208,11 +366,11 @@ export default function Dashboard() {
               change: '+0' 
             },
             { 
-              icon: Receipt, 
-              title: 'Pending Bills', 
-              value: billSummary?.pendingBills.toString() || '0', 
-              change: `$${billSummary?.totalAmountDue || 0}`,
-              color: billSummary?.totalAmountDue ? '#ef4444' : '#22c55e'
+              icon: Award, 
+              title: 'Sustainability Grade', 
+              value: calculateSustainabilityGrade().grade, 
+              change: `${calculateSustainabilityGrade().score}/100`,
+              color: calculateSustainabilityGrade().color
             },
           ].map((stat, index) => (
             <motion.div
@@ -245,8 +403,169 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Carbon Orbit Chart */}
-          <CarbonOrbit data={orbitData} totalEmissions={totalEmissions} />
+          {/* Carbon Orbit Chart with Goals Tab */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Card className="h-full">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-semibold text-carbon-900">
+                    Carbon Analytics
+                  </CardTitle>
+                  <div className="flex bg-eco-50 rounded-lg p-1">
+                    <Button
+                      variant={activeTab === 'overview' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setActiveTab('overview')}
+                      className={activeTab === 'overview' ? 'bg-eco-500 text-white' : 'text-eco-600 hover:text-eco-700'}
+                    >
+                      Overview
+                    </Button>
+                    <Button
+                      variant={activeTab === 'goals' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setActiveTab('goals')}
+                      className={activeTab === 'goals' ? 'bg-eco-500 text-white' : 'text-eco-600 hover:text-eco-700'}
+                    >
+                      <Target className="mr-1 h-3 w-3" />
+                      Goals
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {activeTab === 'overview' ? (
+                  <div className="h-80">
+                    <CarbonOrbit data={orbitData} totalEmissions={totalEmissions} />
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-80 overflow-y-auto">
+                    {/* Add New Goal Form */}
+                    <div className="bg-eco-50 p-4 rounded-lg border border-eco-200">
+                      <h4 className="font-semibold text-eco-800 mb-3 flex items-center">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Goal
+                      </h4>
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          placeholder="Goal title (e.g., Reduce carbon by 20%)"
+                          value={newGoal.title}
+                          onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                          className="w-full px-3 py-2 border border-eco-300 rounded-md focus:outline-none focus:ring-2 focus:ring-eco-500"
+                        />
+                        <textarea
+                          placeholder="Description (optional)"
+                          value={newGoal.description}
+                          onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                          className="w-full px-3 py-2 border border-eco-300 rounded-md focus:outline-none focus:ring-2 focus:ring-eco-500"
+                          rows={2}
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            placeholder="Target value"
+                            value={newGoal.targetValue}
+                            onChange={(e) => setNewGoal({ ...newGoal, targetValue: Number(e.target.value) })}
+                            className="flex-1 px-3 py-2 border border-eco-300 rounded-md focus:outline-none focus:ring-2 focus:ring-eco-500"
+                          />
+                          <select
+                            value={newGoal.unit}
+                            onChange={(e) => setNewGoal({ ...newGoal, unit: e.target.value })}
+                            className="px-3 py-2 border border-eco-300 rounded-md focus:outline-none focus:ring-2 focus:ring-eco-500"
+                          >
+                            <option value="kg CO2e">kg CO2e</option>
+                            <option value="%">%</option>
+                            <option value="days">days</option>
+                            <option value="$">$</option>
+                          </select>
+                        </div>
+                        <Button
+                          onClick={addGoal}
+                          disabled={!newGoal.title.trim()}
+                          className="w-full bg-eco-500 hover:bg-eco-600 text-white"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Goal
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Goals List */}
+                    <div className="space-y-3">
+                      {goals.length === 0 ? (
+                        <div className="text-center py-8 text-carbon-500">
+                          <Target className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                          <p>No goals yet. Add your first sustainability goal above!</p>
+                        </div>
+                      ) : (
+                        goals.map((goal) => (
+                          <div
+                            key={goal.id}
+                            className={`p-4 rounded-lg border transition-all ${
+                              goal.completed 
+                                ? 'bg-green-50 border-green-200' 
+                                : 'bg-white border-eco-200 hover:border-eco-300'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-3">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleGoalComplete(goal.id)}
+                                  className={`p-1 h-6 w-6 rounded-full ${
+                                    goal.completed 
+                                      ? 'bg-green-500 text-white hover:bg-green-600' 
+                                      : 'border-2 border-eco-300 hover:border-eco-500'
+                                  }`}
+                                >
+                                  {goal.completed && <CheckCircle className="h-3 w-3" />}
+                                </Button>
+                                <div className="flex-1">
+                                  <h5 className={`font-medium ${goal.completed ? 'line-through text-green-600' : 'text-carbon-900'}`}>
+                                    {goal.title}
+                                  </h5>
+                                  {goal.description && (
+                                    <p className={`text-sm mt-1 ${goal.completed ? 'text-green-500' : 'text-carbon-600'}`}>
+                                      {goal.description}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className={`text-xs px-2 py-1 rounded-full ${
+                                      goal.completed 
+                                        ? 'bg-green-100 text-green-700' 
+                                        : 'bg-eco-100 text-eco-700'
+                                    }`}>
+                                      Target: {goal.targetValue} {goal.unit}
+                                    </span>
+                                    <span className="text-xs text-carbon-500">
+                                      Progress: {goal.currentValue}/{goal.targetValue} {goal.unit}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteGoal(goal.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Quick Actions */}
           <motion.div
@@ -308,6 +627,160 @@ export default function Dashboard() {
             </TiltCard>
           </motion.div>
         </div>
+
+        {/* Goals Overview Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="mt-8"
+        >
+          <TiltCard>
+            <Card className="glass-card">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-2xl font-bold text-carbon-900 mb-2 flex items-center">
+                      <Target className="mr-3 h-6 w-6 text-eco-500" />
+                      Your Sustainability Goals
+                    </CardTitle>
+                    <CardDescription className="text-carbon-600">
+                      Track your progress towards a more sustainable lifestyle
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab('goals')}
+                    className="border-eco-500 text-eco-600 hover:bg-eco-50"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Goal
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {goals.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Target className="mx-auto h-16 w-16 text-carbon-300 mb-4" />
+                    <h3 className="text-lg font-semibold text-carbon-700 mb-2">No Goals Yet</h3>
+                    <p className="text-carbon-500 mb-4">Start your sustainability journey by setting your first goal!</p>
+                    <Button
+                      onClick={() => setActiveTab('goals')}
+                      className="bg-eco-500 hover:bg-eco-600 text-white"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Your First Goal
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {goals.slice(0, 6).map((goal) => (
+                      <div
+                        key={goal.id}
+                        className={`p-4 rounded-lg border-2 transition-all duration-300 ${
+                          goal.completed 
+                            ? 'bg-green-50 border-green-200 shadow-green-100' 
+                            : 'bg-white border-eco-200 hover:border-eco-300 hover:shadow-lg'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleGoalComplete(goal.id)}
+                              className={`p-1 h-6 w-6 rounded-full ${
+                                goal.completed 
+                                  ? 'bg-green-500 text-white hover:bg-green-600' 
+                                  : 'border-2 border-eco-300 hover:border-eco-500'
+                              }`}
+                            >
+                              {goal.completed && <CheckCircle className="h-3 w-3" />}
+                            </Button>
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              goal.completed 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-eco-100 text-eco-700'
+                            }`}>
+                              {goal.category}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteGoal(goal.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-6 w-6"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                        
+                        <h4 className={`font-semibold mb-2 ${
+                          goal.completed ? 'line-through text-green-600' : 'text-carbon-900'
+                        }`}>
+                          {goal.title}
+                        </h4>
+                        
+                        {goal.description && (
+                          <p className={`text-sm mb-3 ${
+                            goal.completed ? 'text-green-500' : 'text-carbon-600'
+                          }`}>
+                            {goal.description}
+                          </p>
+                        )}
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-carbon-500">Progress</span>
+                            <span className="font-medium">
+                              {goal.currentValue}/{goal.targetValue} {goal.unit}
+                            </span>
+                          </div>
+                          <div className="w-full bg-carbon-100 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-500 ${
+                                goal.completed ? 'bg-green-500' : 'bg-eco-500'
+                              }`}
+                              style={{
+                                width: `${Math.min((goal.currentValue / goal.targetValue) * 100, 100)}%`
+                              }}
+                            ></div>
+                          </div>
+                          <div className="text-xs text-carbon-500">
+                            {goal.completed 
+                              ? '🎉 Goal Achieved!' 
+                              : `${Math.round((goal.currentValue / goal.targetValue) * 100)}% Complete`
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {goals.length > 6 && (
+                      <div className="p-4 rounded-lg border-2 border-dashed border-eco-300 bg-eco-50 flex items-center justify-center">
+                        <div className="text-center">
+                          <Target className="mx-auto h-8 w-8 text-eco-400 mb-2" />
+                          <p className="text-sm text-eco-600 font-medium">
+                            +{goals.length - 6} more goals
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setActiveTab('goals')}
+                            className="mt-2 text-eco-600 hover:text-eco-700"
+                          >
+                            View All
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TiltCard>
+        </motion.div>
 
         {/* Accounts and Recent Transactions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">

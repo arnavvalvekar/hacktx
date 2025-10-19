@@ -14,15 +14,49 @@ const anthropic = new Anthropic({
 })
 
 // Initialize Gemini client
+console.log('🔑 COACH DEBUG: Gemini API Key available:', !!process.env.GEMINI_API_KEY)
+console.log('🔑 COACH DEBUG: API Key length:', process.env.GEMINI_API_KEY?.length || 0)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+
+// Test endpoint to verify Gemini API
+router.get('/test', async (req, res) => {
+  try {
+    console.log('🧪 COACH TEST: Testing Gemini API connection...')
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    const result = await model.generateContent('Hello, respond with "Gemini API is working"')
+    const response = await result.response
+    const text = response.text()
+    
+    console.log('✅ COACH TEST: Gemini API response:', text)
+    res.json({ 
+      success: true, 
+      message: 'Gemini API is working', 
+      response: text,
+      apiKeyPresent: !!process.env.GEMINI_API_KEY
+    })
+  } catch (error) {
+    console.error('❌ COACH TEST: Gemini API test failed:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      apiKeyPresent: !!process.env.GEMINI_API_KEY
+    })
+  }
+})
 
 // New Chat endpoint for Gemini integration
 router.post('/chat', async (req: AuthRequest, res, next) => {
   try {
+    console.log('🤖 COACH DEBUG: Received chat request')
     const { message, history, context } = req.body
     
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' })
+    console.log('🤖 COACH DEBUG: Message:', message?.substring(0, 100) + '...')
+    console.log('🤖 COACH DEBUG: History length:', history?.length || 0)
+    console.log('🤖 COACH DEBUG: Context available:', !!context)
+    
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      console.log('❌ COACH ERROR: Invalid message provided')
+      return res.status(400).json({ error: 'Message is required and must be a non-empty string' })
     }
     
     // Get user from database (fallback to mock data if not found)
@@ -38,71 +72,100 @@ router.post('/chat', async (req: AuthRequest, res, next) => {
     if (context && context.carbonData) {
       const totalCarbon = context.totalCarbon || 0
       const topCategories = context.topCategories || []
+      const transactionCount = context.carbonData.length || 0
       
       carbonContext = `
-Your Carbon Footprint Summary:
+YOUR CURRENT CARBON FOOTPRINT DATA:
 - Total Carbon Footprint: ${totalCarbon.toFixed(2)} kg CO2e
-- Top Categories: ${topCategories.map(([cat, val]) => `${cat} (${val.toFixed(2)}kg)`).join(', ')}
-- Transactions Tracked: ${context.carbonData.length}
-- Average per Transaction: ${(totalCarbon / context.carbonData.length).toFixed(2)} kg CO2e
+- Top Categories: ${topCategories.map(([cat, val]) => `${cat} (${val.toFixed(2)} kg CO2e)`).join(', ')}
+- Transactions Tracked: ${transactionCount}
+- Average per Transaction: ${transactionCount > 0 ? (totalCarbon / transactionCount).toFixed(2) : '0.00'} kg CO2e
+
+RECENT TRANSACTION CATEGORIES:
+${context.carbonData.slice(0, 10).map(data => `- ${data.category.join(', ')}: ${data.carbonFootprint.toFixed(2)} kg CO2e (${new Date(data.date).toLocaleDateString()})`).join('\n')}
 `
     } else {
       carbonContext = `
-Your Carbon Footprint Summary:
+YOUR CURRENT CARBON FOOTPRINT DATA:
 - Total Carbon Footprint: 15.2 kg CO2e
-- Top Categories: Food & Dining (8.5kg), Transportation (4.2kg), Shopping (2.5kg)
+- Top Categories: Food & Dining (8.5 kg CO2e), Transportation (4.2 kg CO2e), Shopping (2.5 kg CO2e)
 - Transactions Tracked: 23
 - Average per Transaction: 0.66 kg CO2e
+
+RECENT TRANSACTION CATEGORIES:
+- Food & Dining: 2.1 kg CO2e (Today)
+- Transportation: 1.8 kg CO2e (Yesterday)
+- Shopping: 1.2 kg CO2e (Yesterday)
+- Utilities: 0.9 kg CO2e (2 days ago)
 `
     }
-    
-    // Create conversation history for Gemini
-    const conversationHistory = history?.map((msg: any) => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    })) || []
-    
-    // Add the current message
-    conversationHistory.push({
-      role: 'user',
-      parts: [{ text: message }]
-    })
-    
-    // Create the system prompt
-    const systemPrompt = `You are EcoFin Coach, a friendly and knowledgeable AI assistant for EcoFin Carbon, a financial sustainability platform. Your role is to help users understand their carbon footprint and provide actionable, specific recommendations to reduce their environmental impact.
 
+    // Create the system prompt with better structure
+    const systemPrompt = `You are EcoFin Coach, an expert AI assistant specializing in financial sustainability and carbon footprint reduction. You help users make environmentally conscious financial decisions.
+
+CONTEXT:
 ${carbonContext}
 
-Guidelines:
-1. Be encouraging and supportive, never judgmental
-2. Provide specific, actionable advice based on their spending patterns
-3. Use their carbon data to give personalized recommendations
-4. Keep responses conversational and under 200 words
-5. Focus on practical steps they can take immediately
-6. Mention specific carbon reduction benefits when possible
-7. If they ask about specific transactions or categories, reference their data
+YOUR EXPERTISE:
+- Carbon footprint analysis and reduction strategies
+- Sustainable financial planning and budgeting
+- Eco-friendly spending alternatives and lifestyle changes
+- Environmental impact assessment of daily activities
+- Personal finance optimization for sustainability
 
-Remember: You're helping them make smart financial decisions that are also environmentally friendly. Connect their spending to carbon impact and suggest alternatives that save money AND reduce emissions.`
+RESPONSE GUIDELINES:
+1. Always provide specific, actionable advice tailored to their data
+2. Use their carbon footprint data to give personalized recommendations
+3. Suggest concrete alternatives with estimated carbon savings
+4. Keep responses conversational but informative (150-250 words)
+5. Be encouraging and supportive, never judgmental
+6. Connect financial savings to environmental benefits
+7. Provide immediate steps they can take today
+8. If they ask about specific categories, reference their actual data
 
+EXAMPLES OF GOOD RESPONSES:
+- "Based on your $X spending on [category], you could save Y kg CO2e by..."
+- "Your transportation emissions are X kg - here are 3 specific ways to reduce them..."
+- "I notice you spend $X on dining out. Here's how to make eco-friendly choices..."
+
+Remember: Focus on practical, immediate actions that save money AND reduce carbon emissions.`
+    
     // Get the Gemini model
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    console.log('🤖 COACH DEBUG: Getting Gemini model...')
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    console.log('🤖 COACH DEBUG: Model obtained successfully')
     
-    // Create the chat session
-    const chat = model.startChat({
-      history: conversationHistory.slice(0, -1), // All except the current message
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 300,
-      },
-    })
+    // Create the full prompt with system context and conversation history
+    let fullPrompt = systemPrompt + '\n\n'
     
-    // Send the message with system context
-    const fullMessage = `${systemPrompt}\n\nUser message: ${message}`
-    const result = await chat.sendMessage(fullMessage)
+    // Add conversation history
+    if (history && history.length > 0) {
+      fullPrompt += 'CONVERSATION HISTORY:\n'
+      history.forEach((msg: any, index: number) => {
+        fullPrompt += `${msg.role === 'assistant' ? 'Assistant' : 'User'}: ${msg.content}\n`
+      })
+      fullPrompt += '\n'
+    }
+    
+    // Add current message
+    fullPrompt += `User: ${message}\n\nPlease respond as EcoFin Coach:`
+    
+    console.log('🤖 COACH DEBUG: Sending message to Gemini...')
+    const result = await model.generateContent(fullPrompt)
     const response = await result.response
-    const aiResponse = response.text()
+    
+    if (!response || !response.text) {
+      throw new Error('Invalid response from Gemini API')
+    }
+    
+    const aiResponse = response.text().trim()
+    
+    if (!aiResponse || aiResponse.length === 0) {
+      throw new Error('Empty response from Gemini API')
+    }
+    
+    console.log('🤖 COACH DEBUG: Generated response length:', aiResponse.length)
+    console.log('🤖 COACH DEBUG: Response preview:', aiResponse.substring(0, 100) + '...')
     
     // Save to database if user exists
     if (user) {
@@ -112,7 +175,7 @@ Remember: You're helping them make smart financial decisions that are also envir
           question: message,
           answer: aiResponse,
           context: {
-            model: 'gemini-pro',
+            model: 'gemini-2.5-flash',
             carbonContext,
             historyLength: history?.length || 0
           }
@@ -128,7 +191,7 @@ Remember: You're helping them make smart financial decisions that are also envir
       data: {
         response: aiResponse,
         context: {
-          model: 'gemini-pro',
+          model: 'gemini-2.5-flash',
           carbonFootprint: context?.carbonData || [],
           totalCarbon: context?.totalCarbon || 0
         }
@@ -136,16 +199,33 @@ Remember: You're helping them make smart financial decisions that are also envir
     })
     
   } catch (error) {
-    console.error('Gemini Chat error:', error)
+    console.error('❌ COACH ERROR: Gemini Chat error:', error)
+    console.error('❌ COACH ERROR: Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    
+    // Determine if it's an API key issue
+    const isApiKeyError = error instanceof Error && (
+      error.message.includes('API_KEY') || 
+      error.message.includes('authentication') ||
+      error.message.includes('403')
+    )
     
     // Fallback response if Gemini fails
+    const fallbackResponse = isApiKeyError 
+      ? "I'm currently experiencing technical difficulties with my AI system. Please try again in a few moments, or contact support if the issue persists."
+      : `I understand you're looking for ways to reduce your carbon footprint. Based on your spending patterns, I'd recommend focusing on reducing high-emission categories like transportation and food. Consider carpooling, using public transport, or choosing local, seasonal foods. These small changes can significantly reduce your environmental impact while saving money. Would you like specific advice on any particular category?`
+    
     res.json({
       success: true,
       data: {
-        response: "I understand you're looking for ways to reduce your carbon footprint. Based on your spending patterns, I'd recommend focusing on reducing high-emission categories like transportation and food. Consider carpooling, using public transport, or choosing local, seasonal foods. These small changes can significantly reduce your environmental impact while saving money. Would you like specific advice on any particular category?",
+        response: fallbackResponse,
         context: {
           model: 'fallback',
-          error: 'Gemini API unavailable'
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
         }
       }
     })

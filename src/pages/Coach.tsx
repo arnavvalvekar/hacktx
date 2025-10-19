@@ -22,9 +22,63 @@ export default function Coach() {
   useEffect(() => {
     if (!initialized) {
       loadCarbonData()
+      loadConversationHistory()
       setInitialized(true)
     }
   }, [initialized])
+
+  // Save conversation history to localStorage
+  const saveConversationHistory = () => {
+    try {
+      localStorage.setItem('ecofin-coach-conversation', JSON.stringify(messages))
+    } catch (error) {
+      console.error('Error saving conversation history:', error)
+    }
+  }
+
+  // Load conversation history from localStorage
+  const loadConversationHistory = () => {
+    try {
+      const savedMessages = localStorage.getItem('ecofin-coach-conversation')
+      if (savedMessages) {
+        const parsedMessages = JSON.parse(savedMessages).map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }))
+        setMessages(parsedMessages)
+      }
+    } catch (error) {
+      console.error('Error loading conversation history:', error)
+    }
+  }
+
+  // Save conversation whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      saveConversationHistory()
+    }
+  }, [messages])
+
+  // Clear conversation history
+  const clearConversation = () => {
+    setMessages([])
+    localStorage.removeItem('ecofin-coach-conversation')
+    toast({
+      title: "Conversation Cleared",
+      description: "Your chat history has been cleared.",
+    })
+  }
+
+  // Retry mechanism for failed requests (currently unused but available for future use)
+  // const retryLastMessage = async () => {
+  //   if (messages.length > 0) {
+  //     const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user')
+  //     if (lastUserMessage) {
+  //       setInputMessage(lastUserMessage.content)
+  //       await sendMessage()
+  //     }
+  //   }
+  // }
 
   const loadCarbonData = () => {
     const carbonFootprintData = nessieService.getCarbonFootprintData()
@@ -62,13 +116,14 @@ How can I help you reduce your carbon footprint today? Ask me about:
 
     const userMessage = { role: 'user', content: inputMessage, timestamp: new Date() }
     setMessages(prev => [...prev, userMessage])
+    const currentMessage = inputMessage
     setInputMessage('')
     setIsLoading(true)
 
     try {
       console.log('🔍 COACH DEBUG: Preparing API request...');
       const requestData = {
-        message: inputMessage,
+        message: currentMessage,
         history: messages,
         context: {
           carbonData: carbonData,
@@ -83,7 +138,13 @@ How can I help you reduce your carbon footprint today? Ask me about:
         }
       };
       
-      console.log('🔍 COACH DEBUG: Request data:', requestData);
+      console.log('🔍 COACH DEBUG: Request data:', {
+        message: requestData.message,
+        historyLength: requestData.history.length,
+        carbonDataLength: requestData.context.carbonData.length,
+        totalCarbon: requestData.context.totalCarbon,
+        topCategories: requestData.context.topCategories
+      });
       
       // Connect to backend API endpoint as specified in architecture
       const response = await apiClient.post('/coach/chat', requestData)
@@ -106,18 +167,44 @@ How can I help you reduce your carbon footprint today? Ask me about:
         data: (error as any)?.response?.data
       });
       
-      toast({
-        title: "Error",
-        description: "Failed to send message to AI coach",
-        variant: "destructive"
-      })
+      const errorStatus = (error as any)?.response?.status;
+      const errorMessage = (error as any)?.response?.data?.error || (error instanceof Error ? error.message : 'Unknown error');
       
-      const errorMessage = { 
+      // Handle different types of errors
+      if (errorStatus === 401) {
+        toast({
+          title: "Authentication Error",
+          description: "Your session has expired. Please refresh the page and try again.",
+          variant: "destructive",
+        });
+      } else if (errorStatus === 429) {
+        toast({
+          title: "Rate Limited",
+          description: "Too many requests. Please wait a moment before trying again.",
+          variant: "destructive",
+        });
+      } else if (errorStatus >= 500) {
+        toast({
+          title: "Server Error",
+          description: "The AI service is temporarily unavailable. Please try again later.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to send message: ${errorMessage}`,
+          variant: "destructive",
+        });
+      }
+      
+      const assistantErrorMessage = { 
         role: 'assistant', 
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: errorStatus === 401 
+          ? 'I need you to refresh the page to continue our conversation. Your session has expired.'
+          : 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date()
       }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => [...prev, assistantErrorMessage])
     } finally {
       setIsLoading(false)
     }
@@ -131,12 +218,26 @@ How can I help you reduce your carbon footprint today? Ask me about:
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold text-carbon-900 mb-2">
-            AI Eco Coach
-          </h1>
-          <p className="text-carbon-600 text-lg">
-            Get personalized recommendations to reduce your carbon footprint
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-4xl font-bold text-carbon-900 mb-2">
+                AI Eco Coach
+              </h1>
+              <p className="text-carbon-600 text-lg">
+                Get personalized recommendations to reduce your carbon footprint
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearConversation}
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                Clear Chat
+              </Button>
+            </div>
+          </div>
         </motion.div>
 
         {/* Carbon Insights Summary */}
