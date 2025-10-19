@@ -6,15 +6,42 @@ const API_BASE = (import.meta as any).env?.VITE_API_BASE || "/api";
 export function createAuthorizedClient(getToken: () => Promise<string>) {
   const client = axios.create({ baseURL: API_BASE });
   client.interceptors.request.use(async (config) => {
+    console.log('🔍 API DEBUG: Making request to:', config.url);
+    console.log('🔍 API DEBUG: Request method:', config.method);
+    
     try {
       const token = await getToken();
+      console.log('🔍 API DEBUG: Token retrieved:', token ? 'Present' : 'Missing');
+      console.log('🔍 API DEBUG: Token length:', token ? token.length : 0);
+      console.log('🔍 API DEBUG: Token preview:', token ? token.substring(0, 50) + '...' : 'No token');
+      
       if (token) {
         config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('✅ API DEBUG: Authorization header set');
+      } else {
+        console.log('❌ API DEBUG: No token available');
       }
-    } catch {}
+    } catch (error) {
+      console.error('❌ API DEBUG: Error getting token:', error);
+    }
+    
+    console.log('🔍 API DEBUG: Final headers:', config.headers);
     return config;
   });
+  
+  client.interceptors.response.use(
+    (response) => {
+      console.log('✅ API DEBUG: Response received:', response.status, response.config.url);
+      return response;
+    },
+    (error) => {
+      console.error('❌ API DEBUG: Response error:', error.response?.status, error.config?.url);
+      console.error('❌ API DEBUG: Error details:', error.response?.data);
+      return Promise.reject(error);
+    }
+  );
+  
   return client;
 }
 

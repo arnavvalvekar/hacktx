@@ -58,14 +58,16 @@ How can I help you reduce your carbon footprint today? Ask me about:
   const sendMessage = async () => {
     if (!inputMessage.trim()) return
 
+    console.log('🔍 COACH DEBUG: Starting to send message:', inputMessage);
+
     const userMessage = { role: 'user', content: inputMessage, timestamp: new Date() }
     setMessages(prev => [...prev, userMessage])
     setInputMessage('')
     setIsLoading(true)
 
     try {
-      // Connect to backend API endpoint as specified in architecture
-      const response = await apiClient.post('/coach/chat', {
+      console.log('🔍 COACH DEBUG: Preparing API request...');
+      const requestData = {
         message: inputMessage,
         history: messages,
         context: {
@@ -79,7 +81,14 @@ How can I help you reduce your carbon footprint today? Ask me about:
             }, {} as Record<string, number>)
           ).sort(([,a], [,b]) => b - a).slice(0, 3)
         }
-      })
+      };
+      
+      console.log('🔍 COACH DEBUG: Request data:', requestData);
+      
+      // Connect to backend API endpoint as specified in architecture
+      const response = await apiClient.post('/coach/chat', requestData)
+      
+      console.log('✅ COACH DEBUG: Response received:', response.data);
       
       const botMessage = { 
         role: 'assistant', 
@@ -87,8 +96,16 @@ How can I help you reduce your carbon footprint today? Ask me about:
         timestamp: new Date()
       }
       setMessages(prev => [...prev, botMessage])
+      
+      console.log('✅ COACH DEBUG: Message sent successfully');
     } catch (error) {
-      console.error('Error sending message:', error)
+      console.error('❌ COACH ERROR: Error sending message:', error);
+      console.error('❌ COACH ERROR: Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        status: (error as any)?.response?.status,
+        data: (error as any)?.response?.data
+      });
+      
       toast({
         title: "Error",
         description: "Failed to send message to AI coach",

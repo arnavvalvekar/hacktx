@@ -30,27 +30,46 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
+      console.log('🔍 DASHBOARD DEBUG: Starting to load dashboard data');
       setIsLoading(true)
       
+      console.log('🔍 DASHBOARD DEBUG: Loading user profile...');
       // Load user profile
       const profileResponse = await apiClient.get('/users/profile')
+      console.log('✅ DASHBOARD DEBUG: User profile loaded:', profileResponse.data);
       setUserProfile(profileResponse.data.data)
       
+      console.log('🔍 DASHBOARD DEBUG: Loading emissions summary...');
       // Load emissions summary
       const emissionsResponse = await apiClient.get('/emissions/summary?window=week')
+      console.log('✅ DASHBOARD DEBUG: Emissions summary loaded:', emissionsResponse.data);
       setEmissionsSummary(emissionsResponse.data.data)
       
+      console.log('🔍 DASHBOARD DEBUG: Loading Nessie mock data...');
       // Load Nessie mock data
       const accountData = nessieService.getAccountSummary()
       const transactionData = nessieService.getTransactionSummary()
       const billData = nessieService.getBillSummary()
       
+      console.log('✅ DASHBOARD DEBUG: Nessie data loaded:', {
+        accountData,
+        transactionData,
+        billData
+      });
+      
       setAccountSummary(accountData)
       setTransactionSummary(transactionData)
       setBillSummary(billData)
       
+      console.log('✅ DASHBOARD DEBUG: Dashboard data loaded successfully');
+      
     } catch (error) {
-      console.error('Error loading dashboard data:', error)
+      console.error('❌ DASHBOARD ERROR: Error loading dashboard data:', error);
+      console.error('❌ DASHBOARD ERROR: Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        status: (error as any)?.response?.status,
+        data: (error as any)?.response?.data
+      });
       toast({
         title: "Error",
         description: "Failed to load dashboard data",
