@@ -144,31 +144,31 @@ export default function Dashboard() {
     let score: number
     let color: string
     
-    if (avgCarbonPerTransaction <= 0.5) {
+    if (avgCarbonPerTransaction <= 1.5) {
       grade = 'A+'
       score = 95
       color = '#22c55e' // Green
-    } else if (avgCarbonPerTransaction <= 1.0) {
+    } else if (avgCarbonPerTransaction <= 2.5) {
       grade = 'A'
       score = 90
       color = '#22c55e' // Green
-    } else if (avgCarbonPerTransaction <= 2.0) {
+    } else if (avgCarbonPerTransaction <= 4.0) {
       grade = 'B+'
       score = 85
       color = '#84cc16' // Light green
-    } else if (avgCarbonPerTransaction <= 3.0) {
+    } else if (avgCarbonPerTransaction <= 5.5) {
       grade = 'B'
       score = 80
       color = '#84cc16' // Light green
-    } else if (avgCarbonPerTransaction <= 4.0) {
+    } else if (avgCarbonPerTransaction <= 7.0) {
       grade = 'C+'
       score = 75
       color = '#eab308' // Yellow
-    } else if (avgCarbonPerTransaction <= 5.0) {
+    } else if (avgCarbonPerTransaction <= 9.0) {
       grade = 'C'
       score = 70
       color = '#eab308' // Yellow
-    } else if (avgCarbonPerTransaction <= 7.0) {
+    } else if (avgCarbonPerTransaction <= 12.0) {
       grade = 'D'
       score = 60
       color = '#f97316' // Orange

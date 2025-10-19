@@ -1,16 +1,10 @@
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { HeroParallax } from '@/components/HeroParallax'
-import { TiltCard } from '@/components/TiltCard'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
   Leaf, 
-  TrendingDown, 
   Zap, 
-  Globe, 
-  BarChart3, 
-  Users, 
   Shield,
   ArrowRight,
   CheckCircle,
@@ -21,137 +15,254 @@ import {
   Brain,
   Heart,
   Lightbulb,
-  TrendingUp
+  TrendingUp,
+  BarChart3,
+  Globe,
+  Users,
+  Star,
+  Play,
+  Menu,
+  X
 } from 'lucide-react'
+
+// Typewriter effect component
+const TypewriterText = ({ text, delay = 50 }: { text: string; delay?: number }) => {
+  const [displayedText, setDisplayedText] = useState('')
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedText(prev => prev + text[currentIndex])
+        setCurrentIndex(prev => prev + 1)
+      }, delay)
+
+      return () => clearTimeout(timeout)
+    }
+  }, [currentIndex, text, delay])
+
+  return (
+    <span>
+      {displayedText}
+      <span className="animate-pulse">|</span>
+    </span>
+  )
+}
 
 export default function Landing() {
   const navigate = useNavigate()
 
-  const problems = [
-    {
-      icon: AlertTriangle,
-      title: 'Lack of Awareness',
-      description: 'More than two-thirds of global greenhouse-gas emissions are linked to unaware consumption.',
-      statistic: '67%',
-      color: 'text-red-500',
-      bgColor: 'bg-red-50'
-    },
-    {
-      icon: Eye,
-      title: 'No Accessible Tools',
-      description: 'Consumers struggle to estimate even relative carbon emissions of everyday behaviors.',
-      statistic: 'Hard to Track',
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-50'
-    },
-    {
-      icon: Target,
-      title: 'Hard to Take Action',
-      description: 'Spending data stays disconnected from impact based on carbon emissions.',
-      statistic: 'Disconnected',
-      color: 'text-yellow-500',
-      bgColor: 'bg-yellow-50'
-    }
-  ]
-
-  const features = [
-    {
-      icon: Zap,
-      title: 'Automated Carbon Tracking',
-      description: 'Instantly see the CO₂ impact of your spending — no manual input needed.',
-      color: 'text-blue-500'
-    },
-    {
-      icon: Shield,
-      title: 'Bank Integration',
-      description: 'Connect securely with your bank through the Nessie API to analyze real transactions.',
-      color: 'text-green-500'
-    },
-    {
-      icon: Brain,
-      title: 'Personalized Insights',
-      description: 'Get a breakdown of which purchases contribute most to your footprint.',
-      color: 'text-purple-500'
-    },
-    {
-      icon: Lightbulb,
-      title: 'Actionable Recommendations',
-      description: 'Discover greener alternatives and ways to offset your emissions.',
-      color: 'text-yellow-500'
-    },
-    {
-      icon: BarChart3,
-      title: 'Visual Dashboard',
-      description: 'Interactive charts help you visualize your carbon impact over time.',
-      color: 'text-indigo-500'
-    },
-    {
-      icon: Award,
-      title: 'Gamified Sustainability',
-      description: 'Earn badges or streaks for lowering your emissions each month.',
-      color: 'text-red-500'
-    }
-  ]
-
-  const benefits = [
-    'Reduce your carbon footprint by up to 30%',
-    'Save money while saving the planet',
-    'Get personalized eco-friendly recommendations',
-    'Track your environmental impact in real-time',
-    'Join a community of sustainable spenders'
-  ]
-
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <HeroParallax />
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={() => navigate('/login')}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              <Leaf className="h-8 w-8 text-eco-500" />
+              <span className="text-2xl font-bold text-gray-900">EcoFin</span>
+            </button>
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-gray-600 hover:text-eco-500 transition-colors">Features</a>
+              <a href="#mission" className="text-gray-600 hover:text-eco-500 transition-colors">Mission</a>
+            </div>
+            <button
+              onClick={() => {
+                console.log('Get Started button clicked, navigating to login...')
+                navigate('/login')
+              }}
+              className="bg-eco-500 hover:bg-eco-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Get Started
+            </button>
+          </div>
+        </div>
+      </nav>
 
-      {/* Problem Statement Section */}
-      <section id="problem" className="py-20 bg-gradient-to-b from-white to-carbon-50">
+      {/* Hero Section */}
+    <section className="pt-20 pb-16 bg-gradient-to-br from-eco-200 via-carbon-200 to-eco-300 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-gradient-to-r from-eco-600/15 to-carbon-600/15"></div>
+        <div className="absolute inset-0 opacity-50">
+          <div className="absolute top-10 left-10 w-20 h-20 bg-eco-600/25 rounded-full blur-xl"></div>
+          <div className="absolute top-32 right-20 w-32 h-32 bg-carbon-600/25 rounded-full blur-xl"></div>
+          <div className="absolute bottom-20 left-1/3 w-24 h-24 bg-eco-700/25 rounded-full blur-xl"></div>
+          <div className="absolute bottom-32 right-1/3 w-16 h-16 bg-carbon-700/25 rounded-full blur-xl"></div>
+        </div>
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-8"
+            >
+              <div className="space-y-6">
+                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+                  Your Smart
+                  <span className="text-eco-500 block">Carbon Tracker</span>
+                </h1>
+                <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
+                  <TypewriterText 
+                    text="Transform your spending into positive environmental impact. Track your carbon footprint automatically and make sustainable financial decisions with confidence." 
+                    delay={30} 
+                  />
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => {
+                    console.log('Button clicked, navigating to login...')
+                    navigate('/login')
+                  }}
+                  className="bg-eco-500 hover:bg-eco-600 text-white px-8 py-4 text-lg rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  Try EcoFin Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-6 text-sm text-gray-500">
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Free to start</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>No setup required</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Secure & private</span>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative"
+            >
+              <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-eco-500 rounded-full flex items-center justify-center">
+                      <Leaf className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Carbon Impact</h3>
+                      <p className="text-sm text-gray-500">This month</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-green-600">-15%</div>
+                      <div className="text-sm text-green-700">vs last month</div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-blue-600">A+</div>
+                      <div className="text-sm text-blue-700">Sustainability grade</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Transportation</span>
+                      <span className="text-sm font-medium text-gray-900">2.3 kg CO₂</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-red-500 h-2 rounded-full" style={{ width: '40%' }}></div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Food & Dining</span>
+                      <span className="text-sm font-medium text-gray-900">1.8 kg CO₂</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-orange-500 h-2 rounded-full" style={{ width: '30%' }}></div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Shopping</span>
+                      <span className="text-sm font-medium text-gray-900">1.2 kg CO₂</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '20%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Problem Statement */}
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center max-w-4xl mx-auto"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-carbon-900 mb-6">
-              What's the <span className="gradient-text">Problem</span>?
+            <h2 className="text-4xl font-bold text-gray-900 mb-6">
+              The Hidden Cost of Every Purchase
             </h2>
-            <p className="text-xl text-carbon-600 max-w-3xl mx-auto">
-              The current state of carbon awareness and tracking presents significant challenges 
-              that prevent individuals from making informed environmental decisions.
+            <p className="text-xl text-gray-600 mb-12">
+              More than 67% of global greenhouse gas emissions are linked to consumer spending, 
+              yet most people have no idea how their purchases impact the environment.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {problems.map((problem, index) => (
+            {[
+              {
+                icon: AlertTriangle,
+                title: '67% of emissions',
+                description: 'Linked to unaware consumer spending',
+                color: 'text-red-500',
+                bg: 'bg-red-50'
+              },
+              {
+                icon: Eye,
+                title: 'No visibility',
+                description: 'Consumers can\'t track their carbon footprint',
+                color: 'text-orange-500',
+                bg: 'bg-orange-50'
+              },
+              {
+                icon: Target,
+                title: 'Hard to act',
+                description: 'Spending data disconnected from environmental impact',
+                color: 'text-yellow-500',
+                bg: 'bg-yellow-50'
+              }
+            ].map((item, index) => (
               <motion.div
-                key={problem.title}
+                key={item.title}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
+                className={`${item.bg} rounded-2xl p-8 text-center`}
               >
-                <TiltCard className="h-full">
-                  <Card className={`h-full glass-card hover:shadow-xl transition-all duration-300 ${problem.bgColor}`}>
-                    <CardHeader className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-r from-eco-500 to-eco-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <problem.icon className={`h-8 w-8 text-white`} />
-                      </div>
-                      <div className={`text-3xl font-bold ${problem.color} mb-2`}>
-                        {problem.statistic}
-                      </div>
-                      <CardTitle className="text-xl text-carbon-900">{problem.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-base leading-relaxed text-carbon-700">
-                        {problem.description}
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                </TiltCard>
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <item.icon className={`h-8 w-8 ${item.color}`} />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-gray-600">{item.description}</p>
               </motion.div>
             ))}
           </div>
@@ -159,164 +270,116 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gradient-to-b from-carbon-50 to-white">
+      <section id="features" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center max-w-3xl mx-auto mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-carbon-900 mb-6">
-              Why <span className="gradient-text">EcoFin</span>?
+            <h2 className="text-4xl font-bold text-gray-900 mb-6">
+              Everything you need to make sustainable choices
             </h2>
-            <p className="text-xl text-carbon-600 max-w-3xl mx-auto">
-              We bridge the gap between finance and sustainability with cutting-edge technology 
-              that makes carbon tracking simple, transparent, and accessible.
+            <p className="text-xl text-gray-600">
+              Our platform automatically tracks your carbon footprint and provides 
+              personalized insights to help you reduce your environmental impact.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
+            {[
+              {
+                icon: Zap,
+                title: 'Automated Tracking',
+                description: 'Instantly see the CO₂ impact of your spending with no manual input required.',
+                color: 'text-blue-500'
+              },
+              {
+                icon: Shield,
+                title: 'Secure Bank Integration',
+                description: 'Connect safely through the Nessie API to analyze your real transactions.',
+                color: 'text-green-500'
+              },
+              {
+                icon: Brain,
+                title: 'Smart Insights',
+                description: 'Get personalized breakdowns of which purchases contribute most to your footprint.',
+                color: 'text-purple-500'
+              },
+              {
+                icon: Lightbulb,
+                title: 'Actionable Tips',
+                description: 'Discover greener alternatives and ways to offset your emissions.',
+                color: 'text-yellow-500'
+              },
+              {
+                icon: BarChart3,
+                title: 'Visual Dashboard',
+                description: 'Interactive charts help you visualize your carbon impact over time.',
+                color: 'text-indigo-500'
+              },
+              {
+                icon: Award,
+                title: 'Achievement System',
+                description: 'Earn badges and streaks for lowering your emissions each month.',
+                color: 'text-red-500'
+              }
+            ].map((feature, index) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
+                className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow"
               >
-                <TiltCard className="h-full">
-                  <Card className="h-full glass-card hover:shadow-xl transition-all duration-300">
-                    <CardHeader>
-                      <feature.icon className={`h-12 w-12 ${feature.color} mb-4`} />
-                      <CardTitle className="text-xl">{feature.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-base leading-relaxed">
-                        {feature.description}
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                </TiltCard>
+                <feature.icon className={`h-12 w-12 ${feature.color} mb-6`} />
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Mission Statement Section */}
-      <section className="py-20 bg-gradient-to-b from-white to-eco-50">
+      {/* Mission Section */}
+      <section id="mission" className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <motion.div
+            <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
             className="max-w-4xl mx-auto text-center"
           >
-            <div className="w-20 h-20 bg-gradient-to-r from-eco-500 to-eco-600 rounded-full flex items-center justify-center mx-auto mb-8">
+            <div className="w-20 h-20 bg-eco-500 rounded-full flex items-center justify-center mx-auto mb-8">
               <Heart className="h-10 w-10 text-white" />
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-carbon-900 mb-8">
-              Our <span className="gradient-text">Mission</span>
-            </h2>
-            <div className="space-y-6 text-lg text-carbon-700 leading-relaxed">
+            <h2 className="text-4xl font-bold text-gray-900 mb-8">Our Mission</h2>
+            <div className="space-y-6 text-lg text-gray-600 leading-relaxed">
               <p>
-                At <strong>EcoFIN</strong>, our mission is to bridge the gap between finance and sustainability 
-                by creating an empowering, user-friendly platform that helps individuals understand the 
-                environmental impact of their spending.
+                At <strong>EcoFin</strong>, we believe that every purchase has an environmental cost. 
+                Our mission is to bridge the gap between finance and sustainability by creating 
+                an empowering platform that helps individuals understand the true impact of their spending.
               </p>
               <p>
-                We strive to make carbon tracking simple, transparent, and accessible—turning everyday 
+                We make carbon tracking simple, transparent, and accessible—turning everyday 
                 purchases into opportunities for positive climate action.
               </p>
               <p>
-                While we're starting with personal finance, our solution is built to support anyone seeking 
-                to make more sustainable choices. By fostering trust, clarity, and data-driven insight, 
-                EcoFIN is committed to helping users take control of their carbon footprint and contribute 
-                to a greener, more conscious world.
+                By fostering awareness, providing actionable insights, and gamifying sustainable choices, 
+                EcoFin helps users take control of their carbon footprint and contribute to a greener, 
+                more conscious world.
               </p>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 bg-gradient-to-b from-eco-50 to-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold text-carbon-900 mb-6">
-                Make Every Dollar <span className="gradient-text">Count</span>
-              </h2>
-              <p className="text-xl text-carbon-600 mb-8 leading-relaxed">
-                Transform your spending habits into positive environmental impact. 
-                Our platform helps you understand the carbon cost of your purchases 
-                and guides you toward more sustainable choices.
-              </p>
-              
-              <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <motion.div
-                    key={benefit}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    viewport={{ once: true }}
-                    className="flex items-center gap-3"
-                  >
-                    <CheckCircle className="h-6 w-6 text-eco-500 flex-shrink-0" />
-                    <span className="text-carbon-700 text-lg">{benefit}</span>
-                  </motion.div>
-                ))}
               </div>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
-              <TiltCard>
-                <Card className="glass-card p-8">
-                  <div className="text-center">
-                    <div className="w-24 h-24 bg-gradient-to-r from-eco-500 to-eco-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Leaf className="h-12 w-12 text-white" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-carbon-900 mb-4">
-                      Start Your Journey Today
-                    </h3>
-                    <p className="text-carbon-600 mb-6">
-                      Join thousands of users who are already reducing their carbon footprint 
-                      while improving their financial health.
-                    </p>
-                    <Button
-                      size="lg"
-                      variant="eco"
-                      className="w-full"
-                      onClick={() => navigate('/login')}
-                    >
-                      Get Started Now
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                </Card>
-              </TiltCard>
-            </motion.div>
-          </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-eco-500 to-eco-600">
+      <section className="py-20 bg-eco-500">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -324,62 +387,58 @@ export default function Landing() {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Ready to Make a <span className="text-eco-100">Difference</span>?
+            <h2 className="text-4xl font-bold text-white mb-6">
+              Ready to make every dollar count?
             </h2>
-            <p className="text-xl text-eco-100 mb-8 max-w-2xl mx-auto">
-              Start tracking your carbon footprint today and join the movement 
-              toward sustainable finance.
+            <p className="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
+              Join thousands of users who are already reducing their carbon footprint 
+              while improving their financial health.
             </p>
             <Button
               size="lg"
-              variant="outline"
-              className="bg-white text-eco-600 hover:bg-eco-50 border-white"
               onClick={() => navigate('/login')}
+              className="bg-white text-eco-500 hover:bg-gray-50 px-8 py-4 text-lg"
             >
-              Launch Dashboard
-              <ArrowRight className="ml-2 h-4 w-4" />
+              Start Your Journey
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-16 bg-carbon-900 text-white">
+      <footer className="py-16 bg-gray-900 text-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div className="text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
-                <Leaf className="h-6 w-6 text-eco-500" />
-                <span className="text-xl font-bold">EcoFin</span>
-              </div>
-              <p className="text-carbon-400">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+            <Leaf className="h-6 w-6 text-eco-500" />
+            <span className="text-xl font-bold">EcoFin Carbon</span>
+          </div>
+              <p className="text-gray-400">
+                Built for Capital One Hackathon | HackTX 2024
+              </p>
+              <p className="text-gray-400 mt-2">
                 Bridging finance and sustainability for a greener future.
               </p>
             </div>
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Product</h3>
               <div className="space-y-2">
-                <p className="text-carbon-400">Features</p>
-                <p className="text-carbon-400">Mission</p>
-                <p className="text-carbon-400">Contact</p>
+                <a href="#features" className="block text-gray-400 hover:text-white">Features</a>
+                <a href="#" className="block text-gray-400 hover:text-white">API</a>
               </div>
             </div>
-            <div className="text-center md:text-right">
-              <h3 className="text-lg font-semibold mb-4">Connect</h3>
-              <p className="text-carbon-400 mb-2">Ready to start your journey?</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-eco-500 text-eco-500 hover:bg-eco-500 hover:text-white"
-                onClick={() => navigate('/login')}
-              >
-                Get Started
-              </Button>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Company</h3>
+              <div className="space-y-2">
+                <a href="#mission" className="block text-gray-400 hover:text-white">Mission</a>
+                <a href="#" className="block text-gray-400 hover:text-white">About</a>
+              </div>
             </div>
           </div>
-          <div className="border-t border-carbon-700 pt-8 text-center">
-            <p className="text-sm text-carbon-500">
+          <div className="border-t border-gray-700 pt-8 text-center">
+            <p className="text-sm text-gray-400">
               © 2024 EcoFin. Built for Capital One Hackathon. Making sustainable finance accessible to everyone.
             </p>
           </div>
