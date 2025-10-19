@@ -8,7 +8,7 @@ export default {
     },
   },
   server: {
-    port: 3000,
+    port: 3003,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

@@ -1,11 +1,39 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TiltCard } from '@/components/TiltCard'
-import { Settings as SettingsIcon, User, Palette, Database, Shield, Bell, Globe } from 'lucide-react'
+import { Settings as SettingsIcon, User, Palette, Database, Shield, Bell, Globe, Key, CheckCircle } from 'lucide-react'
+import { nessieService } from '@/services/nessieService'
 
 export default function Settings() {
+  const [nessieStatus, setNessieStatus] = useState<any>(null)
+
+  useEffect(() => {
+    loadNessieStatus()
+  }, [])
+
+  const loadNessieStatus = () => {
+    try {
+      const accounts = nessieService.getAccounts()
+      const carbonData = nessieService.getCarbonFootprintData()
+      const totalCarbon = nessieService.getTotalCarbonFootprint()
+      
+      setNessieStatus({
+        connected: true,
+        accountsCount: accounts.length,
+        transactionsTracked: carbonData.length,
+        totalCarbonFootprint: totalCarbon,
+        lastSync: new Date().toISOString()
+      })
+    } catch (error) {
+      setNessieStatus({
+        connected: false,
+        error: 'Failed to load Nessie data'
+      })
+    }
+  }
+
   const settingsSections = [
     {
       title: "Profile Settings",
@@ -32,7 +60,27 @@ export default function Settings() {
       description: "Configure your Nessie API and data connections",
       icon: Database,
       items: [
-        { label: "Nessie API Key", value: "••••••••••••••••", type: "password" },
+        { 
+          label: "Nessie API Status", 
+          value: nessieStatus?.connected ? "Connected" : "Disconnected", 
+          type: "status",
+          status: nessieStatus?.connected ? "success" : "error"
+        },
+        { 
+          label: "Accounts Connected", 
+          value: nessieStatus?.accountsCount?.toString() || "0", 
+          type: "text" 
+        },
+        { 
+          label: "Transactions Tracked", 
+          value: nessieStatus?.transactionsTracked?.toString() || "0", 
+          type: "text" 
+        },
+        { 
+          label: "Total Carbon Footprint", 
+          value: nessieStatus?.totalCarbonFootprint ? `${nessieStatus.totalCarbonFootprint.toFixed(2)} kg CO₂` : "0.00 kg CO₂", 
+          type: "text" 
+        },
         { label: "Auto Sync", value: "Enabled", type: "toggle" },
         { label: "Sync Frequency", value: "Daily", type: "select", options: ["Hourly", "Daily", "Weekly"] }
       ]
@@ -139,6 +187,17 @@ export default function Settings() {
                               <Button variant="outline" size="sm">
                                 {item.value}
                               </Button>
+                            ) : item.type === 'status' ? (
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className={`h-4 w-4 ${
+                                  item.status === 'success' ? 'text-green-500' : 'text-red-500'
+                                }`} />
+                                <span className={`text-sm font-medium ${
+                                  item.status === 'success' ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                  {item.value}
+                                </span>
+                              </div>
                             ) : (
                               <span className="text-sm text-carbon-600">{item.value}</span>
                             )}

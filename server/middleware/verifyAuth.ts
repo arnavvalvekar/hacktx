@@ -24,6 +24,17 @@ export interface AuthRequest extends Request {
 
 export const verifyAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    // Development bypass for testing
+    if (process.env.NODE_ENV === 'development' && process.env.DEV_BYPASS_AUTH === 'true') {
+      console.log('🔧 Development mode: Bypassing authentication')
+      req.user = {
+        sub: 'dev-user-123',
+        email: 'dev@example.com',
+        name: 'Development User'
+      }
+      return next()
+    }
+
     const authHeader = req.headers.authorization
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

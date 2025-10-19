@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TiltCard } from '@/components/TiltCard'
@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 // import { Input } from '@/components/ui/input' // Input component not available
 import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
-import { MessageCircle, Send, Bot, User } from 'lucide-react'
+import { MessageCircle, Send, Bot, User, Leaf } from 'lucide-react'
+import { nessieService } from '@/services/nessieService'
+import type { CarbonFootprintData } from '@/types/nessieTypes'
 
 export default function Coach() {
   const apiClient = useApiClient()
@@ -14,6 +16,44 @@ export default function Coach() {
   const [isLoading, setIsLoading] = useState(false)
   const [messages, setMessages] = useState<any[]>([])
   const [inputMessage, setInputMessage] = useState('')
+  const [carbonData, setCarbonData] = useState<CarbonFootprintData[]>([])
+  const [initialized, setInitialized] = useState(false)
+
+  useEffect(() => {
+    if (!initialized) {
+      loadCarbonData()
+      setInitialized(true)
+    }
+  }, [initialized])
+
+  const loadCarbonData = () => {
+    const carbonFootprintData = nessieService.getCarbonFootprintData()
+    setCarbonData(carbonFootprintData)
+    
+    // Add initial welcome message with carbon insights
+    const totalCarbon = carbonFootprintData.reduce((sum, data) => sum + data.carbonFootprint, 0)
+    const categoryBreakdown = carbonFootprintData.reduce((acc, data) => {
+      const category = data.category[0] || 'Other'
+      acc[category] = (acc[category] || 0) + data.carbonFootprint
+      return acc
+    }, {} as Record<string, number>)
+
+    const topCategory = Object.entries(categoryBreakdown).sort(([,a], [,b]) => b - a)[0]
+    
+    const welcomeMessage = {
+      role: 'assistant',
+      content: `🌱 Hello! I'm your Eco Coach. I can see you've tracked ${totalCarbon.toFixed(2)} kg CO₂ from your recent transactions. Your highest impact category is ${topCategory?.[0] || 'shopping'} with ${topCategory?.[1]?.toFixed(2) || 0} kg CO₂. 
+
+How can I help you reduce your carbon footprint today? Ask me about:
+• Sustainable alternatives for your spending habits
+• Tips to reduce emissions in specific categories  
+• Setting realistic carbon reduction goals
+• Eco-friendly merchant recommendations`,
+      timestamp: new Date()
+    }
+    
+    setMessages([welcomeMessage])
+  }
 
   const sendMessage = async () => {
     if (!inputMessage.trim()) return
@@ -25,9 +65,20 @@ export default function Coach() {
 
     try {
       // Connect to backend API endpoint as specified in architecture
-      const response = await apiClient.post('/api/chat', {
+      const response = await apiClient.post('/coach/chat', {
         message: inputMessage,
-        history: messages
+        history: messages,
+        context: {
+          carbonData: carbonData,
+          totalCarbon: carbonData.reduce((sum, data) => sum + data.carbonFootprint, 0),
+          topCategories: Object.entries(
+            carbonData.reduce((acc, data) => {
+              const category = data.category[0] || 'Other'
+              acc[category] = (acc[category] || 0) + data.carbonFootprint
+              return acc
+            }, {} as Record<string, number>)
+          ).sort(([,a], [,b]) => b - a).slice(0, 3)
+        }
       })
       
       const botMessage = { 
@@ -71,6 +122,50 @@ export default function Coach() {
           </p>
         </motion.div>
 
+        {/* Carbon Insights Summary */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-8"
+        >
+          <TiltCard>
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Leaf className="h-5 w-5 text-eco-500" />
+                  Your Carbon Footprint Summary
+                </CardTitle>
+                <CardDescription>
+                  Current carbon impact from your transactions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-eco-50 rounded-lg">
+                    <div className="text-2xl font-bold text-eco-600">
+                      {carbonData.reduce((sum, data) => sum + data.carbonFootprint, 0).toFixed(2)} kg CO₂
+                    </div>
+                    <div className="text-sm text-carbon-600">Total Carbon Footprint</div>
+                  </div>
+                  <div className="text-center p-4 bg-eco-50 rounded-lg">
+                    <div className="text-2xl font-bold text-eco-600">
+                      {carbonData.length}
+                    </div>
+                    <div className="text-sm text-carbon-600">Transactions Tracked</div>
+                  </div>
+                  <div className="text-center p-4 bg-eco-50 rounded-lg">
+                    <div className="text-2xl font-bold text-eco-600">
+                      {carbonData.length > 0 ? (carbonData.reduce((sum, data) => sum + data.carbonFootprint, 0) / carbonData.length).toFixed(2) : '0.00'} kg
+                    </div>
+                    <div className="text-sm text-carbon-600">Average per Transaction</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TiltCard>
+        </motion.div>
+
         <TiltCard>
           <Card className="glass-card">
             <CardHeader>
@@ -79,7 +174,7 @@ export default function Coach() {
                 Chat with Eco Coach
               </CardTitle>
               <CardDescription>
-                AI-powered sustainability guidance
+                AI-powered sustainability guidance based on your spending patterns
               </CardDescription>
             </CardHeader>
             <CardContent>

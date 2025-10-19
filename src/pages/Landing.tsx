@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { HeroParallax } from '@/components/HeroParallax'
 import { TiltCard } from '@/components/TiltCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 
 export default function Landing() {
+  const navigate = useNavigate()
   const features = [
     {
       icon: BarChart3,
@@ -175,7 +177,7 @@ export default function Landing() {
                       size="lg"
                       variant="eco"
                       className="w-full"
-                      onClick={() => window.location.href = '/login'}
+                      onClick={() => navigate('/login')}
                     >
                       Get Started Now
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -208,7 +210,7 @@ export default function Landing() {
               size="lg"
               variant="outline"
               className="bg-white text-eco-600 hover:bg-eco-50 border-white"
-              onClick={() => window.location.href = '/login'}
+              onClick={() => navigate('/login')}
             >
               Launch Dashboard
               <ArrowRight className="ml-2 h-4 w-4" />

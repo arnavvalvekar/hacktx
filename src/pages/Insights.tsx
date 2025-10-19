@@ -5,13 +5,17 @@ import { TiltCard } from '@/components/TiltCard'
 import { Button } from '@/components/ui/button'
 import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
-import { TrendingUp, BarChart3, PieChart, RefreshCw } from 'lucide-react'
+import { TrendingUp, BarChart3, PieChart, RefreshCw, Leaf, Target, AlertCircle, CheckCircle } from 'lucide-react'
+import { nessieService } from '@/services/nessieService'
+import type { CarbonFootprintData, AccountSummary, TransactionSummary } from '@/types/nessieTypes'
 
 export default function Insights() {
   const apiClient = useApiClient()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
-  const [insights, setInsights] = useState<any>(null)
+  const [carbonData, setCarbonData] = useState<CarbonFootprintData[]>([])
+  const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null)
+  const [transactionSummary, setTransactionSummary] = useState<TransactionSummary | null>(null)
 
   useEffect(() => {
     loadInsights()
@@ -20,9 +24,16 @@ export default function Insights() {
   const loadInsights = async () => {
     try {
       setIsLoading(true)
-      // Connect to backend API endpoint as specified in architecture
-      const response = await apiClient.get('/api/emissions/aggregate')
-      setInsights(response.data.data || null)
+      
+      // Load Nessie mock data for insights
+      const carbonFootprintData = nessieService.getCarbonFootprintData()
+      const accountData = nessieService.getAccountSummary()
+      const transactionData = nessieService.getTransactionSummary()
+      
+      setCarbonData(carbonFootprintData)
+      setAccountSummary(accountData)
+      setTransactionSummary(transactionData)
+      
     } catch (error) {
       console.error('Error loading insights:', error)
       toast({
@@ -34,6 +45,21 @@ export default function Insights() {
       setIsLoading(false)
     }
   }
+
+  // Calculate insights from carbon data
+  const totalCarbonFootprint = carbonData.reduce((total, data) => total + data.carbonFootprint, 0)
+  const categoryBreakdown = carbonData.reduce((acc, data) => {
+    const category = data.category[0] || 'Other'
+    acc[category] = (acc[category] || 0) + data.carbonFootprint
+    return acc
+  }, {} as Record<string, number>)
+
+  const topCategories = Object.entries(categoryBreakdown)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5)
+
+  const averageCarbonPerTransaction = carbonData.length > 0 ? totalCarbonFootprint / carbonData.length : 0
+  const totalSpent = carbonData.reduce((total, data) => total + data.amount, 0)
   return (
     <div className="min-h-screen bg-gradient-to-br from-eco-50 to-carbon-50 p-8">
       <div className="container mx-auto">
@@ -84,29 +110,132 @@ export default function Insights() {
                     <p className="text-carbon-600">Loading insights...</p>
                   </div>
                 </div>
-              ) : insights ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-white p-4 rounded-lg border border-carbon-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <BarChart3 className="h-5 w-5 text-eco-500" />
-                      <span className="font-medium">Total Emissions</span>
-                    </div>
-                    <p className="text-2xl font-bold text-carbon-900">{insights.total_emissions || '0.00'} kg CO₂</p>
+              ) : carbonData.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="bg-white p-4 rounded-lg border border-carbon-200"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Leaf className="h-5 w-5 text-eco-500" />
+                        <span className="font-medium">Total Carbon Footprint</span>
+                      </div>
+                      <p className="text-2xl font-bold text-carbon-900">{totalCarbonFootprint.toFixed(2)} kg CO₂</p>
+                      <p className="text-sm text-carbon-600">From {carbonData.length} transactions</p>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="bg-white p-4 rounded-lg border border-carbon-200"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <BarChart3 className="h-5 w-5 text-eco-500" />
+                        <span className="font-medium">Average per Transaction</span>
+                      </div>
+                      <p className="text-2xl font-bold text-carbon-900">{averageCarbonPerTransaction.toFixed(2)} kg CO₂</p>
+                      <p className="text-sm text-carbon-600">Per transaction</p>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-white p-4 rounded-lg border border-carbon-200"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <PieChart className="h-5 w-5 text-eco-500" />
+                        <span className="font-medium">Categories</span>
+                      </div>
+                      <p className="text-2xl font-bold text-carbon-900">{Object.keys(categoryBreakdown).length}</p>
+                      <p className="text-sm text-carbon-600">Different categories</p>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="bg-white p-4 rounded-lg border border-carbon-200"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-5 w-5 text-eco-500" />
+                        <span className="font-medium">Total Spent</span>
+                      </div>
+                      <p className="text-2xl font-bold text-carbon-900">${totalSpent.toFixed(2)}</p>
+                      <p className="text-sm text-carbon-600">On tracked purchases</p>
+                    </motion.div>
                   </div>
-                  <div className="bg-white p-4 rounded-lg border border-carbon-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <PieChart className="h-5 w-5 text-eco-500" />
-                      <span className="font-medium">Categories</span>
+
+                  {/* Top Categories */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <h3 className="text-lg font-semibold text-carbon-900 mb-4">Top Carbon Categories</h3>
+                    <div className="space-y-3">
+                      {topCategories.map(([category, carbon], index) => (
+                        <div key={category} className="bg-white p-4 rounded-lg border border-carbon-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-eco-100 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-bold text-eco-600">{index + 1}</span>
+                              </div>
+                              <div>
+                                <p className="font-medium text-carbon-900">{category}</p>
+                                <p className="text-sm text-carbon-600">
+                                  {((carbon / totalCarbonFootprint) * 100).toFixed(1)}% of total footprint
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-carbon-900">{carbon.toFixed(2)} kg CO₂</p>
+                              <p className="text-sm text-eco-600">Carbon footprint</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-2xl font-bold text-carbon-900">{insights.categories?.length || 0}</p>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border border-carbon-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="h-5 w-5 text-eco-500" />
-                      <span className="font-medium">Trend</span>
+                  </motion.div>
+
+                  {/* Recommendations */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    <h3 className="text-lg font-semibold text-carbon-900 mb-4">Sustainability Recommendations</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                          <span className="font-medium text-green-800">Good Practices</span>
+                        </div>
+                        <ul className="text-sm text-green-700 space-y-1">
+                          <li>• Shopping at organic food stores</li>
+                          <li>• Using public transportation</li>
+                          <li>• Supporting local businesses</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertCircle className="h-5 w-5 text-amber-500" />
+                          <span className="font-medium text-amber-800">Areas for Improvement</span>
+                        </div>
+                        <ul className="text-sm text-amber-700 space-y-1">
+                          <li>• Reduce gas station visits</li>
+                          <li>• Consider carpooling options</li>
+                          <li>• Explore eco-friendly alternatives</li>
+                        </ul>
+                      </div>
                     </div>
-                    <p className="text-2xl font-bold text-carbon-900">{insights.trend || 'Stable'}</p>
-                  </div>
+                  </motion.div>
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center bg-gradient-to-br from-eco-100 to-eco-200 rounded-lg">

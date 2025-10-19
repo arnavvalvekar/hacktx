@@ -1,20 +1,28 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TiltCard } from '@/components/TiltCard'
 import { CarbonOrbit } from '@/components/CarbonOrbit'
 import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
-import { Leaf, TrendingUp, Calendar, Zap, RefreshCw } from 'lucide-react'
-import { formatCarbon, calculateEcoScore } from '@/lib/utils'
+import { LogoutButton } from '@/components/LogoutButton'
+import { Leaf, TrendingUp, Calendar, Zap, RefreshCw, DollarSign, CreditCard, Receipt, MessageCircle } from 'lucide-react'
+import { formatCarbon } from '@/lib/utils'
+import { nessieService } from '@/services/nessieService'
+import type { AccountSummary, TransactionSummary, BillSummary } from '@/types/nessieTypes'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const apiClient = useApiClient()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [emissionsSummary, setEmissionsSummary] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
+  const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null)
+  const [transactionSummary, setTransactionSummary] = useState<TransactionSummary | null>(null)
+  const [billSummary, setBillSummary] = useState<BillSummary | null>(null)
 
   useEffect(() => {
     loadDashboardData()
@@ -31,6 +39,15 @@ export default function Dashboard() {
       // Load emissions summary
       const emissionsResponse = await apiClient.get('/emissions/summary?window=week')
       setEmissionsSummary(emissionsResponse.data.data)
+      
+      // Load Nessie mock data
+      const accountData = nessieService.getAccountSummary()
+      const transactionData = nessieService.getTransactionSummary()
+      const billData = nessieService.getBillSummary()
+      
+      setAccountSummary(accountData)
+      setTransactionSummary(transactionData)
+      setBillSummary(billData)
       
     } catch (error) {
       console.error('Error loading dashboard data:', error)
@@ -113,7 +130,6 @@ export default function Dashboard() {
   }
 
   const totalEmissions = emissionsSummary?.totalKg || 0
-  const ecoScore = calculateEcoScore(totalEmissions, 'week')
   
   // Prepare data for CarbonOrbit chart
   const orbitData = Object.entries(emissionsSummary?.categoryBreakdown || {})
@@ -134,12 +150,21 @@ export default function Dashboard() {
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold text-carbon-900 mb-2">
-            Welcome back, <span className="gradient-text">{userProfile?.name || 'User'}</span>
-          </h1>
-          <p className="text-carbon-600 text-lg">
-            Track your carbon footprint and make sustainable financial decisions
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-4xl font-bold text-carbon-900 mb-2">
+                Welcome back, <span className="gradient-text">{userProfile?.name || 'User'}</span>
+              </h1>
+              <p className="text-carbon-600 text-lg">
+                Track your carbon footprint and make sustainable financial decisions
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <LogoutButton className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                Logout
+              </LogoutButton>
+            </div>
+          </div>
         </motion.div>
 
         {/* Stats Grid */}
@@ -152,23 +177,23 @@ export default function Dashboard() {
               change: '+0%' 
             },
             { 
-              icon: TrendingUp, 
-              title: 'Weekly Average', 
-              value: formatCarbon(totalEmissions / 7), 
+              icon: DollarSign, 
+              title: 'Total Balance', 
+              value: `$${accountSummary?.totalBalance.toLocaleString() || '0'}`, 
               change: '+0%' 
             },
             { 
               icon: Calendar, 
               title: 'Transactions', 
-              value: emissionsSummary?.transactionCount || '0', 
+              value: transactionSummary?.totalTransactions.toString() || '0', 
               change: '+0' 
             },
             { 
-              icon: Zap, 
-              title: 'Eco Score', 
-              value: ecoScore.grade, 
-              change: '+0',
-              color: ecoScore.color
+              icon: Receipt, 
+              title: 'Pending Bills', 
+              value: billSummary?.pendingBills.toString() || '0', 
+              change: `$${billSummary?.totalAmountDue || 0}`,
+              color: billSummary?.totalAmountDue ? '#ef4444' : '#22c55e'
             },
           ].map((stat, index) => (
             <motion.div
@@ -238,7 +263,7 @@ export default function Dashboard() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
-                    onClick={() => window.location.href = '/insights'}
+                    onClick={() => navigate('/insights')}
                   >
                     <TrendingUp className="mr-2 h-4 w-4" />
                     View Insights
@@ -246,11 +271,106 @@ export default function Dashboard() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
-                    onClick={() => window.location.href = '/transactions'}
+                    onClick={() => navigate('/transactions')}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
                     Transaction History
                   </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/coach')}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    AI Eco Coach
+                  </Button>
+                </CardContent>
+              </Card>
+            </TiltCard>
+          </motion.div>
+        </div>
+
+        {/* Accounts and Recent Transactions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          {/* Accounts Overview */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+          >
+            <TiltCard>
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <CreditCard className="mr-2 h-5 w-5 text-eco-500" />
+                    Your Accounts
+                  </CardTitle>
+                  <CardDescription>
+                    Account balances and details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {accountSummary?.accounts.map((account) => (
+                    <div key={account._id} className="flex items-center justify-between p-3 bg-eco-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-carbon-900">{account.nickname}</p>
+                        <p className="text-sm text-carbon-600">{account.type} • {account.account_number}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-bold ${account.balance >= 0 ? 'text-carbon-900' : 'text-red-600'}`}>
+                          ${account.balance.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-eco-600">{account.rewards} rewards</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TiltCard>
+          </motion.div>
+
+          {/* Recent Transactions */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+          >
+            <TiltCard>
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Calendar className="mr-2 h-5 w-5 text-eco-500" />
+                    Recent Transactions
+                  </CardTitle>
+                  <CardDescription>
+                    Latest financial activity
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {transactionSummary?.recentTransactions.slice(0, 5).map((transaction) => (
+                    <div key={transaction._id} className="flex items-center justify-between p-2 bg-eco-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div className={`w-2 h-2 rounded-full mr-3 ${
+                          transaction.type === 'deposit' ? 'bg-green-500' : 
+                          transaction.type === 'purchase' ? 'bg-red-500' : 'bg-blue-500'
+                        }`} />
+                        <div>
+                          <p className="text-sm font-medium text-carbon-900">{transaction.description}</p>
+                          <p className="text-xs text-carbon-600">
+                            {new Date(transaction.date).toLocaleDateString()} • {transaction.type}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-medium ${
+                          transaction.type === 'deposit' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {transaction.type === 'deposit' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-carbon-600 capitalize">{transaction.status}</p>
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </TiltCard>

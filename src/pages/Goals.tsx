@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { TiltCard } from '@/components/TiltCard'
 import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
-import { Target, Trophy, TrendingDown, Calendar, Award, CheckCircle, RefreshCw } from 'lucide-react'
+import { Target, Trophy, TrendingDown, Calendar, Award, CheckCircle, RefreshCw, Leaf, Zap } from 'lucide-react'
+import { nessieService } from '@/services/nessieService'
+import type { CarbonFootprintData } from '@/types/nessieTypes'
 
 export default function Goals() {
   const apiClient = useApiClient()
@@ -13,6 +15,7 @@ export default function Goals() {
   const [isLoading, setIsLoading] = useState(true)
   const [goals, setGoals] = useState<any[]>([])
   const [badges, setBadges] = useState<any[]>([])
+  const [carbonData, setCarbonData] = useState<CarbonFootprintData[]>([])
 
   useEffect(() => {
     loadGoals()
@@ -21,10 +24,16 @@ export default function Goals() {
   const loadGoals = async () => {
     try {
       setIsLoading(true)
-      // Connect to backend API endpoint as specified in architecture
-      const response = await apiClient.get('/api/goals')
-      setGoals(response.data.data?.goals || [])
-      setBadges(response.data.data?.badges || [])
+      
+      // Load Nessie mock data for goals
+      const carbonFootprintData = nessieService.getCarbonFootprintData()
+      setCarbonData(carbonFootprintData)
+      
+      // Generate dynamic goals based on carbon data
+      const dynamicGoals = generateGoalsFromCarbonData(carbonFootprintData)
+      setGoals(dynamicGoals)
+      setBadges(mockBadges)
+      
     } catch (error) {
       console.error('Error loading goals:', error)
       toast({
@@ -38,6 +47,56 @@ export default function Goals() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const generateGoalsFromCarbonData = (carbonData: CarbonFootprintData[]) => {
+    const totalCarbon = carbonData.reduce((sum, data) => sum + data.carbonFootprint, 0)
+    const categoryBreakdown = carbonData.reduce((acc, data) => {
+      const category = data.category[0] || 'Other'
+      acc[category] = (acc[category] || 0) + data.carbonFootprint
+      return acc
+    }, {} as Record<string, number>)
+
+    const topCategory = Object.entries(categoryBreakdown).sort(([,a], [,b]) => b - a)[0]
+    
+    return [
+      {
+        id: 1,
+        title: "Reduce Overall Carbon Footprint",
+        description: `Decrease monthly emissions by 25% from current ${totalCarbon.toFixed(2)} kg CO₂`,
+        target: "25%",
+        current: "0%",
+        deadline: "2024-12-31",
+        status: "in-progress",
+        badge: "Carbon Crusher",
+        currentValue: totalCarbon,
+        targetValue: totalCarbon * 0.75
+      },
+      {
+        id: 2,
+        title: `Reduce ${topCategory?.[0] || 'Top Category'} Emissions`,
+        description: `Cut ${topCategory?.[0] || 'highest impact'} category emissions by 30%`,
+        target: "30%",
+        current: "0%",
+        deadline: "2024-11-30",
+        status: "in-progress",
+        badge: "Category Champion",
+        currentValue: topCategory?.[1] || 0,
+        targetValue: (topCategory?.[1] || 0) * 0.7
+      },
+      {
+        id: 3,
+        title: "Sustainable Transportation",
+        description: "Reduce gas station visits and increase eco-friendly transport",
+        target: "50%",
+        current: "0%",
+        deadline: "2024-11-15",
+        status: "in-progress",
+        badge: "Eco Traveler",
+        currentValue: 0,
+        targetValue: 50
+      }
+    ]
   }
 
   const mockGoals = [
@@ -74,11 +133,11 @@ export default function Goals() {
   ]
 
   const mockBadges = [
-    { name: "Carbon Crusher", icon: Target, earned: true },
-    { name: "Eco Traveler", icon: Award, earned: true },
-    { name: "Green Shopper", icon: Trophy, earned: true },
-    { name: "Sustainability Master", icon: CheckCircle, earned: false },
-    { name: "Eco Warrior", icon: TrendingDown, earned: false }
+    { name: "Carbon Crusher", icon: Leaf, earned: true, description: "Tracked your first carbon footprint" },
+    { name: "Eco Traveler", icon: Zap, earned: false, description: "Use sustainable transportation 10 times" },
+    { name: "Green Shopper", icon: Trophy, earned: true, description: "Shop at eco-friendly stores" },
+    { name: "Sustainability Master", icon: CheckCircle, earned: false, description: "Reduce carbon footprint by 50%" },
+    { name: "Eco Warrior", icon: TrendingDown, earned: false, description: "Achieve all sustainability goals" }
   ]
 
   return (
@@ -182,7 +241,7 @@ export default function Goals() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {badges.map((badge, index) => (
                     <motion.div
                       key={badge.name}
@@ -202,6 +261,11 @@ export default function Goals() {
                         badge.earned ? 'text-eco-800' : 'text-carbon-500'
                       }`}>
                         {badge.name}
+                      </p>
+                      <p className={`text-xs mt-1 ${
+                        badge.earned ? 'text-eco-700' : 'text-carbon-400'
+                      }`}>
+                        {badge.description}
                       </p>
                     </motion.div>
                   ))}
