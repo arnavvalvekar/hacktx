@@ -78,13 +78,7 @@ const FALLBACK_DATA = {
       {
         id: 'demo-chat-1',
         question: 'How can I reduce my carbon footprint?',
-        answer: {
-          context: 'Based on your spending patterns, I can see opportunities for improvement.',
-          suggestion: 'Consider reducing fuel purchases by 20% through carpooling or public transport.',
-          why_it_helps: 'Transportation is your highest emission category.',
-          estimated_reduction: '0.8 kg CO2e per week',
-          additional_tip: 'Try bulk buying groceries to reduce packaging waste.'
-        },
+        answer: 'Based on your spending patterns, I can see opportunities for improvement. Consider reducing fuel purchases by 20% through carpooling or public transport. Transportation is your highest emission category. Estimated reduction: 0.8 kg CO2e per week. Additional tip: Try bulk buying groceries to reduce packaging waste.',
         context: {
           totalKg: 12.5,
           categoryBreakdown: { fuel: 4.2, groceries: 3.1 },
@@ -106,7 +100,7 @@ export const fallbackHandler = (req: Request, res: Response, next: NextFunction)
   const path = req.path
   const method = req.method
 
-  console.log(`🔄 Fallback mode: ${method} ${path}`)
+  console.log(`Fallback mode: ${method} ${path}`)
 
   // User profile endpoints
   if (path === '/api/users/profile' && method === 'GET') {
@@ -193,17 +187,19 @@ export const fallbackHandler = (req: Request, res: Response, next: NextFunction)
 
   // Coach endpoints
   if (path === '/api/coach' && method === 'POST') {
+    const answer = 'Based on your demo spending patterns, I can see opportunities for improvement. Consider reducing fuel purchases by 20% through carpooling or public transport. Transportation is typically the highest emission category. Estimated reduction: 0.8 kg CO2e per week. Additional tip: Try bulk buying groceries to reduce packaging waste.'
+    // Strip markdown bold/italic just in case
+    const sanitized = answer
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/_(.*?)_/g, '$1')
+
     return res.json({
       success: true,
       data: {
         question: req.body.question || 'How can I reduce my carbon footprint?',
-        answer: {
-          context: 'Based on your demo spending patterns, I can see opportunities for improvement.',
-          suggestion: 'Consider reducing fuel purchases by 20% through carpooling or public transport.',
-          why_it_helps: 'Transportation is typically the highest emission category.',
-          estimated_reduction: '0.8 kg CO2e per week',
-          additional_tip: 'Try bulk buying groceries to reduce packaging waste.'
-        },
+        answer: sanitized,
         context: FALLBACK_DATA.emissions.summary
       },
       fallback: true,

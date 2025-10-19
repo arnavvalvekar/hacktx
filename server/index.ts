@@ -19,14 +19,14 @@ import coachRoutes from './routes/coach'
 dotenv.config({ path: './.env' })
 
 const app = express()
-const PORT = process.env.PORT || 8080
+const PORT = process.env.PORT || 3003
 
 // Security middleware
 app.use(helmet())
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://your-domain.com'] 
-    : ['http://localhost:3003'],
+    : ['http://localhost:3004'],
   credentials: true
 }))
 

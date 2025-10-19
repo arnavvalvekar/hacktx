@@ -5,17 +5,20 @@ import { Button } from '@/components/ui/button'
 import { TiltCard } from '@/components/TiltCard'
 import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
-import { Target, Trophy, TrendingDown, Calendar, Award, CheckCircle, RefreshCw, Leaf, Zap } from 'lucide-react'
+import { Target, Trophy, TrendingDown, Calendar, Award, CheckCircle, RefreshCw, Leaf, Zap, ArrowLeft, MessageSquare } from 'lucide-react'
 import { nessieService } from '@/services/nessieService'
 import type { CarbonFootprintData } from '@/types/nessieTypes'
+import { useNavigate } from 'react-router-dom'
 
 export default function Goals() {
   const apiClient = useApiClient()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [goals, setGoals] = useState<any[]>([])
   const [badges, setBadges] = useState<any[]>([])
   const [carbonData, setCarbonData] = useState<CarbonFootprintData[]>([])
+  const [coachSuggestion, setCoachSuggestion] = useState<any | null>(null)
 
   useEffect(() => {
     loadGoals()
@@ -58,6 +61,14 @@ export default function Goals() {
     }, {} as Record<string, number>)
 
     const topCategory = Object.entries(categoryBreakdown).sort(([,a], [,b]) => b - a)[0]
+    // Prime coach suggestion from carbon data
+    setCoachSuggestion({
+      title: `Reduce ${topCategory?.[0] || 'Top Category'} Emissions by 20%`,
+      description: `Focus on ${topCategory?.[0] || 'your highest-impact category'} purchases this month. Aim to cut emissions by 20% via alternatives and habit tweaks.`,
+      category: (topCategory?.[0] as string) || 'General',
+      targetValue: ((topCategory?.[1] as number) || 0) * 0.8,
+      unit: 'kg CO₂e'
+    })
     
     return [
       {
@@ -149,12 +160,40 @@ export default function Goals() {
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold text-carbon-900 mb-2">
-            Sustainability Goals
-          </h1>
-          <p className="text-carbon-600 text-lg">
-            Track your progress and earn badges for your eco-friendly achievements
-          </p>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+                  Sustainability Goals
+                </h1>
+                <p className="text-gray-600 text-sm">
+                  Track progress and earn badges for eco-friendly achievements
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Active Goals</p>
+                  <p className="text-sm font-medium text-gray-900">{goals.filter(g => g.status !== 'completed').length}</p>
+                </div>
+                <div className="w-px h-8 bg-gray-200"></div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Badges</p>
+                  <p className="text-sm font-medium text-gray-900">{badges.length}</p>
+                </div>
+                <div className="w-px h-8 bg-gray-200"></div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadGoals}
+                  disabled={isLoading}
+                  className="text-gray-600 hover:text-gray-900 border-gray-300"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Goals Section */}
@@ -301,6 +340,99 @@ export default function Goals() {
             </Card>
           </TiltCard>
         </motion.div>
+
+        {/* Coach Prompt - Suggest creating a goal */}
+        {coachSuggestion && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="mt-6"
+          >
+            <TiltCard>
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-eco-500" />
+                    Coach Recommendation
+                  </CardTitle>
+                  <CardDescription>
+                    Personalized suggestion based on your recent carbon footprint data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <p className="text-carbon-900 font-medium">{coachSuggestion.title}</p>
+                      <p className="text-carbon-600 text-sm mt-1">{coachSuggestion.description}</p>
+                      <p className="text-carbon-500 text-xs mt-2">Category: {coachSuggestion.category}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const res = await apiClient.post('/coach/create-goal', coachSuggestion)
+                            const created = res?.data?.data?.goal
+                            if (created) {
+                              setGoals(prev => [
+                                {
+                                  id: created.id,
+                                  title: created.title,
+                                  description: created.description,
+                                  target: '20%',
+                                  current: '0%',
+                                  deadline: new Date(Date.now() + 30*24*60*60*1000).toISOString(),
+                                  status: 'in-progress',
+                                  badge: 'Coach Suggested',
+                                  currentValue: created.currentValue,
+                                  targetValue: created.targetValue
+                                },
+                                ...prev
+                              ])
+                              toast({
+                                title: 'Goal Created',
+                                description: 'Coach suggestion added to your goals.'
+                              })
+                            } else {
+                              throw new Error('Invalid response')
+                            }
+                          } catch (e) {
+                            toast({
+                              title: 'Unable to create goal',
+                              description: 'Please log in and try again.',
+                              variant: 'destructive'
+                            })
+                          }
+                        }}
+                        className="bg-eco-500 hover:bg-eco-600"
+                      >
+                        Add Suggested Goal
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate('/coach')}
+                      >
+                        Chat with Coach
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TiltCard>
+          </motion.div>
+        )}
+        
+        {/* Professional Back Button */}
+        <div className="fixed bottom-6 left-6 z-50">
+          <Button
+            onClick={() => navigate('/dashboard')}
+            className="bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 border border-gray-300 hover:border-gray-400 shadow-md hover:shadow-lg transition-all duration-200 font-medium"
+            size="sm"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
     </div>
   )

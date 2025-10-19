@@ -4,7 +4,7 @@
   "description": "EcoFin Carbon Backend API",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch index.ts",
+    "dev": "PORT=3003 tsx watch index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "tsx utils/seed.ts"

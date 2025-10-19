@@ -8,6 +8,18 @@ import { Chat } from '../models/Chat'
 
 const router = Router()
 
+// Remove markdown bold/italic from AI responses so UI shows plain text
+function sanitizeResponse(text: string): string {
+  if (!text) return text
+  return text
+    // bold **text** or __text__
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    // italic *text* or _text_
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/_(.*?)_/g, '$1')
+}
+
 // Intelligent fallback response generator
 function generateIntelligentFallback(message: string, context: any, history: any[]): string {
   const messageLower = message.toLowerCase()
@@ -25,150 +37,42 @@ function generateIntelligentFallback(message: string, context: any, history: any
   
   // Generate contextual responses based on keywords and data
   if (messageLower.includes('finance') || messageLower.includes('money') || messageLower.includes('budget')) {
-    return `💰 **Smart Financial Sustainability Tips:**
+    return `I get it, money's tight for everyone right now. Looking at your spending, you're doing ${totalCarbon.toFixed(1)} kg CO₂e this month which puts you at ${ecoScore}/100 on our scale. The good news? ${topCategory.category} is where you can make the biggest difference without feeling like you're sacrificing much. 
 
-Based on your current Eco Score of ${ecoScore}/100 and ${totalCarbon.toFixed(1)} kg CO₂e this month, here's how to optimize both your finances and environmental impact:
-
-**Immediate Actions:**
-• **Reduce ${topCategory.category} spending** (${topCategory.pct.toFixed(1)}% of your emissions) - This could save you $50-200/month while cutting ${(totalCarbon * topCategory.pct / 100 * 0.3).toFixed(1)} kg CO₂e
-• **Set up automatic transfers** to a high-yield savings account for eco-friendly purchases
-• **Use cashback apps** like Rakuten for sustainable brands (earn 2-5% back)
-
-**Long-term Strategy:**
-• **Green investments**: Consider ESG funds or green bonds for 5-15% annual returns
-• **Energy efficiency**: LED bulbs, smart thermostats pay for themselves in 1-2 years
-• **Transportation**: If you drive frequently, consider an EV or hybrid - federal tax credits up to $7,500
-
-**Your biggest opportunity**: Focus on ${topCategory.category} - reducing this by 20% could save you $100+/month and ${(totalCarbon * topCategory.pct / 100 * 0.2).toFixed(1)} kg CO₂e monthly.
-
-Would you like specific tips for any category?`
+Try this: pick one thing in that category you buy regularly and swap it for something similar but greener. You'll probably save money too. Want me to look at your recent ${topCategory.category.toLowerCase()} purchases and suggest a specific swap?`
   }
   
   if (messageLower.includes('emission') || messageLower.includes('carbon') || messageLower.includes('reduce')) {
-    return `🌱 **Personalized Carbon Reduction Plan:**
+    return `So you're at ${totalCarbon.toFixed(1)} kg CO₂e this month - honestly, that's pretty typical. Your Eco Score is ${ecoScore}/100, which means there's definitely room to improve but you're not doing terrible.
 
-Your current footprint: **${totalCarbon.toFixed(1)} kg CO₂e** this month
-Eco Score: **${ecoScore}/100** ${ecoScore >= 80 ? '🌿 Excellent!' : ecoScore >= 60 ? '🌱 Good progress!' : '🌳 Room for improvement'}
+The thing is, ${topCategory.category} is eating up most of your footprint. Instead of trying to overhaul everything at once, what if we just picked one habit in that area to tweak? Like, if you're buying gas every week, maybe try carpooling once or twice. Or if it's groceries, maybe hit the farmers market instead of the big chain store. 
 
-**Priority Actions (Biggest Impact):**
-1. **${topCategory.category}** (${topCategory.pct.toFixed(1)}% of emissions)
-   - Potential reduction: ${(totalCarbon * topCategory.pct / 100 * 0.4).toFixed(1)} kg CO₂e/month
-   - Cost savings: $50-150/month
-
-2. **Transportation** (if applicable)
-   - Carpool 2x/week: -${(totalCarbon * 0.15).toFixed(1)} kg CO₂e/month
-   - Public transit: -${(totalCarbon * 0.25).toFixed(1)} kg CO₂e/month
-
-3. **Food & Dining**
-   - Local/seasonal foods: -${(totalCarbon * 0.1).toFixed(1)} kg CO₂e/month
-   - Reduce food waste: -${(totalCarbon * 0.08).toFixed(1)} kg CO₂e/month
-
-**Quick Wins (This Week):**
-• Switch to LED bulbs: -0.5 kg CO₂e/month, save $10/month
-• Unplug electronics: -0.3 kg CO₂e/month, save $5/month
-• Shorter showers: -0.4 kg CO₂e/month, save $8/month
-
-**Goal**: Reduce to ${(totalCarbon * 0.7).toFixed(1)} kg CO₂e/month (30% reduction) = $200+/month savings
-
-Which area interests you most?`
+What's your biggest ${topCategory.category.toLowerCase()} expense right now?`
   }
   
   if (messageLower.includes('goal') || messageLower.includes('target')) {
-    return `🎯 **Setting Realistic Sustainability Goals:**
+    return `Okay, let's be realistic here. You're not going to go from ${totalCarbon.toFixed(1)} kg CO₂e to zero overnight. But we can definitely make some progress.
 
-Based on your current ${totalCarbon.toFixed(1)} kg CO₂e/month footprint, here are achievable targets:
+Since ${topCategory.category} is your biggest issue, let's focus there. How about this: over the next month, try to cut that category by like 15-20%. Not a huge change, but enough that you'll actually notice it. Maybe swap out a few purchases for greener options, or just buy a bit less overall.
 
-**30-Day Goals:**
-• Reduce ${topCategory.category} spending by 15% → Save ${(totalCarbon * topCategory.pct / 100 * 0.15).toFixed(1)} kg CO₂e + $40/month
-• Switch 3 high-emission purchases to eco-alternatives → Save ${(totalCarbon * 0.1).toFixed(1)} kg CO₂e
-• Track daily habits for 1 week → Identify 2-3 optimization opportunities
-
-**90-Day Goals:**
-• Achieve Eco Score of ${Math.min(ecoScore + 15, 100)}/100
-• Reduce total footprint to ${(totalCarbon * 0.8).toFixed(1)} kg CO₂e/month (20% reduction)
-• Save $300+ through sustainable choices
-
-**SMART Goal Framework:**
-- **Specific**: Focus on ${topCategory.category} (your biggest impact area)
-- **Measurable**: Track weekly spending and CO₂e
-- **Achievable**: 15-20% reduction is realistic
-- **Relevant**: Aligns with your ${ecoScore}/100 Eco Score
-- **Time-bound**: 30-day milestones
-
-**Success Metrics:**
-• Weekly CO₂e tracking
-• Monthly savings amount
-• Eco Score improvement
-• Number of sustainable swaps
-
-Ready to set your first goal? I can help you create a specific action plan!`
+Want me to set up a simple goal for you? I can track it and give you a nudge if you're falling behind.`
   }
   
   if (messageLower.includes('alternative') || messageLower.includes('sustainable') || messageLower.includes('eco-friendly')) {
-    return `♻️ **Sustainable Alternatives for Your Spending:**
+    const area = topCategory.category
+    return `Look, I'm not going to tell you to buy some expensive organic whatever. But there are definitely some easy swaps in your ${area.toLowerCase()} spending that won't break the bank.
 
-**${topCategory.category} Alternatives** (${topCategory.pct.toFixed(1)}% of your emissions):
-${topCategory.category === 'Electronics' ? 
-  `• **Refurbished devices**: Save 30-50% + reduce e-waste
-• **Energy-efficient models**: Look for Energy Star ratings
-• **Repair vs Replace**: Fix instead of buying new` :
-topCategory.category === 'Food' ?
-  `• **Local farmers markets**: Fresher, lower emissions
-• **Plant-based options**: 50% lower carbon footprint
-• **Bulk buying**: Reduce packaging waste` :
-topCategory.category === 'Transportation' ?
-  `• **Public transit**: 70% lower emissions than driving
-• **Bike sharing**: Zero emissions + exercise
-• **Carpooling**: Split costs and emissions` :
-  `• **Second-hand shopping**: Reduce manufacturing impact
-• **Quality over quantity**: Buy less, buy better
-• **Local businesses**: Support community + lower shipping`}
+Like, if you're hitting Starbucks every day, maybe try making coffee at home a couple times a week. Or if you're always ordering takeout, maybe meal prep on Sundays. Small stuff that adds up.
 
-**General Sustainable Swaps:**
-• **Reusable containers**: Replace single-use items
-• **Digital receipts**: Reduce paper waste
-• **Energy-efficient appliances**: Long-term savings
-• **Sustainable brands**: Look for B-Corp certifications
-
-**Financial Benefits:**
-• Average savings: $50-200/month
-• Tax incentives: Up to $7,500 for EVs, $2,000 for solar
-• Reduced utility bills: 10-30% savings
-
-**Your Impact Potential:**
-Reducing ${topCategory.category} by 25% could save ${(totalCarbon * topCategory.pct / 100 * 0.25).toFixed(1)} kg CO₂e/month + $75/month
-
-Which category would you like specific alternatives for?`
+What's your go-to ${area.toLowerCase()} purchase? I can probably find you a greener version that's basically the same thing.`
   }
   
   // Default response for general questions
-  return `🌍 **Your Personalized Eco-Financial Guidance:**
+  return `Hey, so I looked at your spending and honestly, you're doing okay. ${topCategory.category} is your biggest carbon hit right now, but that's pretty normal. 
 
-I've analyzed your spending patterns and here's what I found:
+Instead of trying to fix everything at once, what if we just picked one thing to work on? Like, maybe you cut back on ${topCategory.category.toLowerCase()} by like 20% this month. Not a huge change, but enough that you'll actually stick with it.
 
-**Current Status:**
-• Monthly CO₂e: ${totalCarbon.toFixed(1)} kg
-• Eco Score: ${ecoScore}/100 ${ecoScore >= 80 ? '🌿' : ecoScore >= 60 ? '🌱' : '🌳'}
-• Top impact area: **${topCategory.category}** (${topCategory.pct.toFixed(1)}% of emissions)
-
-**Key Opportunities:**
-1. **Focus on ${topCategory.category}** - Your biggest impact area
-2. **Set realistic goals** - Aim for 20-30% reduction
-3. **Track progress** - Monitor weekly changes
-4. **Celebrate wins** - Small changes add up!
-
-**Immediate Actions:**
-• Review your last 10 transactions in ${topCategory.category}
-• Identify 2-3 sustainable alternatives
-• Set a monthly spending limit for high-emission categories
-• Track your Eco Score weekly
-
-**Expected Results:**
-• Reduce CO₂e by ${(totalCarbon * 0.2).toFixed(1)} kg/month
-• Save $100-300/month through smarter choices
-• Improve Eco Score to ${Math.min(ecoScore + 20, 100)}/100
-
-What specific area would you like help with? I can provide detailed guidance on finances, emissions reduction, goal setting, or sustainable alternatives!`
+What do you think? Want to try something small and see how it goes?`
 }
 
 // Initialize Anthropic client
@@ -242,7 +146,7 @@ router.post('/chat', async (req: AuthRequest, res, next) => {
     // Check if API key is available
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim().length === 0) {
       console.log('❌ COACH ERROR: Gemini API key not configured')
-      const fallbackResponse = generateIntelligentFallback(message, context, history)
+      const fallbackResponse = sanitizeResponse(generateIntelligentFallback(message, context, history))
       return res.json({
         success: true,
         data: {
@@ -357,7 +261,7 @@ Remember: Stay focused on your purpose - helping users save money while reducing
       throw new Error('Invalid response from Gemini API')
     }
     
-    const aiResponse = response.text().trim()
+    const aiResponse = sanitizeResponse(response.text().trim())
     
     if (!aiResponse || aiResponse.length === 0) {
       throw new Error('Empty response from Gemini API')
@@ -411,7 +315,7 @@ Remember: Stay focused on your purpose - helping users save money while reducing
     const isNetworkError = errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('ECONNREFUSED')
     
     // Fallback response if Gemini fails
-    const fallbackResponse = generateIntelligentFallback(req.body.message, req.body.context, req.body.history)
+    const fallbackResponse = sanitizeResponse(generateIntelligentFallback(req.body.message, req.body.context, req.body.history))
     
     // Return appropriate status code based on error type
     if (isApiKeyError) {

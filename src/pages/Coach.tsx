@@ -7,6 +7,7 @@ import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
 import { useNavigate } from 'react-router-dom'
 import { MessageCircle, Send, Bot, User, Leaf, Target, ArrowLeft } from 'lucide-react'
+import { useAuth0 } from '@auth0/auth0-react'
 // @ts-ignore - JavaScript module
 import { getTransactions, getDashboardSummary, getCategoryBreakdown } from '@/services/mockData'
 import type { MockTransaction } from '@/types/mockTypes'
@@ -15,6 +16,7 @@ export default function Coach() {
   const apiClient = useApiClient()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { user, isAuthenticated } = useAuth0()
   const [isLoading, setIsLoading] = useState(false)
   const [messages, setMessages] = useState<any[]>([])
   const [inputMessage, setInputMessage] = useState('')
@@ -31,19 +33,37 @@ export default function Coach() {
     }
   }, [initialized])
 
-  // Save conversation history to localStorage
+  // Save conversation history to localStorage (user-scoped)
   const saveConversationHistory = () => {
     try {
-      localStorage.setItem('ecofin-coach-conversation', JSON.stringify(messages))
+      const key = user?.sub ? `ecofin-coach-conversation:${user.sub}` : 'ecofin-coach-conversation'
+      localStorage.setItem(key, JSON.stringify(messages))
     } catch (error) {
       console.error('Error saving conversation history:', error)
     }
   }
 
-  // Load conversation history from localStorage
-  const loadConversationHistory = () => {
+  // Load conversation history (backend if logged in, else local)
+  const loadConversationHistory = async () => {
     try {
-      const savedMessages = localStorage.getItem('ecofin-coach-conversation')
+      if (isAuthenticated) {
+        try {
+          const resp = await apiClient.get('/coach/history?limit=50')
+          const chats = resp?.data?.data?.chats || []
+          const converted = chats.map((c: any) => ([
+            { role: 'user', content: c.question, timestamp: new Date(c.createdAt) },
+            { role: 'assistant', content: typeof c.answer === 'string' ? c.answer : JSON.stringify(c.answer), timestamp: new Date(c.createdAt) },
+          ])).flat()
+          if (converted.length > 0) {
+            setMessages(converted)
+            return
+          }
+        } catch (e) {
+          console.log('Coach history API failed, falling back to local storage')
+        }
+      }
+      const key = user?.sub ? `ecofin-coach-conversation:${user.sub}` : 'ecofin-coach-conversation'
+      const savedMessages = localStorage.getItem(key)
       if (savedMessages) {
         const parsedMessages = JSON.parse(savedMessages).map((msg: any) => ({
           ...msg,
@@ -66,7 +86,8 @@ export default function Coach() {
   // Clear conversation history
   const clearConversation = () => {
     setMessages([])
-    localStorage.removeItem('ecofin-coach-conversation')
+    const key = user?.sub ? `ecofin-coach-conversation:${user.sub}` : 'ecofin-coach-conversation'
+    localStorage.removeItem(key)
     toast({
       title: "Conversation Cleared",
       description: "Your chat history has been cleared.",
@@ -199,18 +220,9 @@ export default function Coach() {
       
       const welcomeMessage = {
         role: 'assistant',
-        content: `🌱 Hello! I'm your Eco Coach. I've analyzed your recent spending patterns and here's what I found:
+        content: `Hey! So I took a look at your spending and you're doing about ${totalCarbon.toFixed(2)} kg CO₂ this month. Your Eco Score is ${ecoScore}/100, which is... well, it's not terrible, but there's definitely room to improve.
 
-📊 **Your Carbon Footprint Summary:**
-• Total CO₂e this month: **${totalCarbon.toFixed(2)} kg**
-• Your Eco Score: **${ecoScore}/100** ${ecoScore >= 80 ? '🌿' : ecoScore >= 60 ? '🌱' : '🌳'}
-• Top spending category: **${topCategory?.category}** (${topCategory?.pct.toFixed(1)}% of emissions)
-
-How can I help you reduce your carbon footprint today? Ask me about:
-• Sustainable alternatives for your spending habits
-• Tips to reduce emissions in specific categories  
-• Setting realistic carbon reduction goals
-• Eco-friendly merchant recommendations`,
+The biggest thing I noticed is ${topCategory?.category} - that's where most of your emissions are coming from. Want to try something simple? Pick one habit in that area and let's see if we can make it a bit greener. What do you think?`,
         timestamp: new Date()
       }
       
@@ -493,7 +505,7 @@ How can I help you reduce your carbon footprint today? Ask me about:
                       >
                         <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                           message.role === 'user' 
-                            ? 'bg-blue-600 text-white' 
+                            ? 'bg-emerald-600 text-white' 
                             : 'bg-white text-gray-900 border border-gray-200'
                         }`}>
                           <div className="flex items-center gap-2 mb-1">
@@ -558,12 +570,12 @@ How can I help you reduce your carbon footprint today? Ask me about:
                     placeholder="Ask about sustainability tips..."
                     onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && sendMessage()}
                     disabled={isLoading}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   />
                   <Button 
                     onClick={sendMessage}
                     disabled={isLoading || !inputMessage.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 font-medium"
+                    className="bg-emerald-600 hover:bg-emerald-700 font-medium"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
