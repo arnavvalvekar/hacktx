@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TiltCard } from '@/components/TiltCard'
@@ -13,15 +13,19 @@ import { Leaf, TrendingUp, Calendar, Zap, RefreshCw, DollarSign, CreditCard, Mes
 import { formatCarbon } from '@/lib/utils'
 import { nessieService } from '@/services/nessieService'
 import type { AccountSummary, TransactionSummary } from '@/types/nessieTypes'
+// @ts-ignore - JavaScript module
+import { MOCK_MODE } from '@/config/app'
+// @ts-ignore - JavaScript module  
+import { getDashboardSummary, getCategoryBreakdown, getTransactions } from '@/services/mockData'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const apiClient = useApiClient()
   const { toast } = useToast()
   const { user } = useAuth0()
   const [isLoading, setIsLoading] = useState(true)
   const [emissionsSummary, setEmissionsSummary] = useState<any>(null)
-  const [userProfile, setUserProfile] = useState<any>(null)
   const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null)
   const [transactionSummary, setTransactionSummary] = useState<TransactionSummary | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'goals'>('overview')
@@ -37,11 +41,53 @@ export default function Dashboard() {
     createdAt: Date
   }>>([])
   const [newGoal, setNewGoal] = useState({ title: '', description: '', targetValue: 0, unit: 'kg CO2e', category: 'carbon' })
+  const [mockSummary, setMockSummary] = useState<any>(null)
 
   useEffect(() => {
     loadDashboardData()
     loadGoals()
-  }, [])
+    
+    // Handle URL parameters
+    const tab = searchParams.get('tab')
+    if (tab === 'goals') {
+      setActiveTab('goals')
+    }
+    
+    // Check for pre-filled goal from coach
+    const prefillGoal = localStorage.getItem('ecofin-prefill-goal')
+    if (prefillGoal) {
+      try {
+        const goal = JSON.parse(prefillGoal)
+        setNewGoal({
+          title: goal.title,
+          description: goal.description,
+          targetValue: goal.targetValue,
+          unit: goal.unit,
+          category: goal.category
+        })
+        setActiveTab('goals')
+        localStorage.removeItem('ecofin-prefill-goal') // Clear after use
+        
+        toast({
+          title: "Goal Ready! 🎯",
+          description: "Customize your goal details below and click 'Add Goal' to save it.",
+        })
+      } catch (error) {
+        console.error('Error parsing pre-filled goal:', error)
+      }
+    }
+    
+    // Listen for goal creation events from coach
+    const handleGoalCreated = () => {
+      loadGoals()
+    }
+    
+    window.addEventListener('goalCreated', handleGoalCreated)
+    
+    return () => {
+      window.removeEventListener('goalCreated', handleGoalCreated)
+    }
+  }, [searchParams])
 
   const loadGoals = () => {
     try {
@@ -186,32 +232,81 @@ export default function Dashboard() {
       console.log('🔍 DASHBOARD DEBUG: Starting to load dashboard data');
       setIsLoading(true)
       
-      console.log('🔍 DASHBOARD DEBUG: Loading user profile...');
-      // Load user profile
-      const profileResponse = await apiClient.get('/users/profile')
-      console.log('✅ DASHBOARD DEBUG: User profile loaded:', profileResponse.data);
-      setUserProfile(profileResponse.data.data)
-      
-      console.log('🔍 DASHBOARD DEBUG: Loading emissions summary...');
-      // Load emissions summary
-      const emissionsResponse = await apiClient.get('/emissions/summary?window=week')
-      console.log('✅ DASHBOARD DEBUG: Emissions summary loaded:', emissionsResponse.data);
-      setEmissionsSummary(emissionsResponse.data.data)
-      
-      console.log('🔍 DASHBOARD DEBUG: Loading Nessie mock data...');
-      // Load Nessie mock data
-      const accountData = nessieService.getAccountSummary()
-      const transactionData = nessieService.getTransactionSummary()
-      
-      console.log('✅ DASHBOARD DEBUG: Nessie data loaded:', {
-        accountData,
-        transactionData
-      });
-      
-      setAccountSummary(accountData)
-      setTransactionSummary(transactionData)
-      
-      console.log('✅ DASHBOARD DEBUG: Dashboard data loaded successfully');
+      if (MOCK_MODE) {
+        console.log('🔍 DASHBOARD DEBUG: Using mock data mode');
+        // Load mock data
+        const mockSummary = await getDashboardSummary();
+        const mockBreakdown = await getCategoryBreakdown();
+        
+        // Set mock emissions summary
+        setEmissionsSummary({
+          totalKg: mockSummary.mtd_kg,
+          categoryBreakdown: mockBreakdown.reduce((acc: any, item: any) => {
+            acc[item.category.toLowerCase()] = item.value;
+            return acc;
+          }, {})
+        });
+        
+        // Set mock account and transaction data
+        setAccountSummary({
+          totalBalance: 5000,
+          accountCount: 1,
+          accounts: [{
+            _id: 'mock-account',
+            customer_id: 'mock-customer',
+            nickname: 'Main Account',
+            type: 'Checking',
+            account_number: '****1234',
+            balance: 5000,
+            rewards: 150
+          }]
+        });
+        
+        setTransactionSummary({
+          totalTransactions: mockSummary.tx_count,
+          totalSpent: 0,
+          totalDeposited: 0,
+          recentTransactions: (await getTransactions()).slice(0, 5).map((tx: any) => ({
+            _id: tx.id,
+            description: tx.merchant,
+            amount: tx.amount,
+            date: tx.date,
+            type: 'purchase',
+            status: 'completed',
+            account_id: 'mock-account'
+          }))
+        });
+        
+        setMockSummary(mockSummary);
+        
+        console.log('✅ DASHBOARD DEBUG: Mock data loaded successfully');
+      } else {
+        console.log('🔍 DASHBOARD DEBUG: Loading user profile...');
+        // Load user profile
+        const profileResponse = await apiClient.get('/users/profile')
+        console.log('✅ DASHBOARD DEBUG: User profile loaded:', profileResponse.data);
+        
+        console.log('🔍 DASHBOARD DEBUG: Loading emissions summary...');
+        // Load emissions summary
+        const emissionsResponse = await apiClient.get('/emissions/summary?window=week')
+        console.log('✅ DASHBOARD DEBUG: Emissions summary loaded:', emissionsResponse.data);
+        setEmissionsSummary(emissionsResponse.data.data)
+        
+        console.log('🔍 DASHBOARD DEBUG: Loading Nessie mock data...');
+        // Load Nessie mock data
+        const accountData = nessieService.getAccountSummary()
+        const transactionData = nessieService.getTransactionSummary()
+        
+        console.log('✅ DASHBOARD DEBUG: Nessie data loaded:', {
+          accountData,
+          transactionData
+        });
+        
+        setAccountSummary(accountData)
+        setTransactionSummary(transactionData)
+        
+        console.log('✅ DASHBOARD DEBUG: Dashboard data loaded successfully');
+      }
       
     } catch (error) {
       console.error('❌ DASHBOARD ERROR: Error loading dashboard data:', error);
@@ -232,22 +327,10 @@ export default function Dashboard() {
 
   const handleSyncTransactions = async () => {
     try {
-      if (!userProfile?.nessieCustomerId || !userProfile?.nessieAccountId) {
-        toast({
-          title: "Setup Required",
-          description: "Please configure your Capital One account first",
-          variant: "destructive"
-        })
-        return
-      }
-
-      const response = await apiClient.get(
-        `/transactions/sync?customerId=${userProfile.nessieCustomerId}&accountId=${userProfile.nessieAccountId}`
-      )
-      
+      // Skip account configuration - just reload mock data
       toast({
         title: "Success",
-        description: `Synced ${response.data.data.synced} transactions`,
+        description: "Data refreshed successfully",
         variant: "success"
       })
       
@@ -255,10 +338,10 @@ export default function Dashboard() {
       await loadDashboardData()
       
     } catch (error) {
-      console.error('Error syncing transactions:', error)
+      console.error('Error refreshing data:', error)
       toast({
         title: "Error",
-        description: "Failed to sync transactions",
+        description: "Failed to refresh data",
         variant: "destructive"
       })
     }
@@ -266,11 +349,10 @@ export default function Dashboard() {
 
   const handleCalculateEmissions = async () => {
     try {
-      await apiClient.post('/emissions/calc', {})
-      
+      // Skip API call - just refresh mock data
       toast({
         title: "Success",
-        description: "Emissions calculated successfully",
+        description: "Emissions data refreshed successfully",
         variant: "success"
       })
       
@@ -278,10 +360,10 @@ export default function Dashboard() {
       await loadDashboardData()
       
     } catch (error) {
-      console.error('Error calculating emissions:', error)
+      console.error('Error refreshing emissions:', error)
       toast({
         title: "Error",
-        description: "Failed to calculate emissions",
+        description: "Failed to refresh emissions data",
         variant: "destructive"
       })
     }
@@ -312,34 +394,42 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-eco-50 to-carbon-50 p-8">
       <div className="container mx-auto">
-        {/* Header */}
+        {/* Professional Banking Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl font-bold text-carbon-900 mb-2">
-                Welcome back, <span className="gradient-text">{user?.name || 'User'}</span>
-              </h1>
-              <p className="text-carbon-600 text-lg">
-                Track your carbon footprint and make sustainable financial decisions
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border-eco-500 text-eco-600 hover:bg-eco-50"
-                onClick={() => navigate('/settings')}
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Button>
-              <LogoutButton className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
-                Logout
-              </LogoutButton>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+                  Financial Dashboard
+                </h1>
+                <p className="text-gray-600 text-sm">
+                  Welcome back, {user?.name || 'User'} • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Account Status</p>
+                  <p className="text-sm font-medium text-green-600">Active</p>
+                </div>
+                <div className="w-px h-8 bg-gray-200"></div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 border-gray-300"
+                  onClick={() => navigate('/settings')}
+                >
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Button>
+                <LogoutButton className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                  Logout
+                </LogoutButton>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -379,27 +469,84 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <TiltCard>
-                <Card className="glass-card hover:shadow-xl transition-all duration-300">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-carbon-600">
-                      {stat.title}
-                    </CardTitle>
-                    <stat.icon className="h-4 w-4 text-eco-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`text-2xl font-bold ${stat.color || 'text-carbon-900'}`}>
-                      {stat.value}
-                    </div>
-                    <p className="text-xs text-eco-600 mt-1">
-                      {stat.change} from last week
-                    </p>
-                  </CardContent>
-                </Card>
-              </TiltCard>
+              <Card className="bg-white border border-gray-200 hover:shadow-lg transition-all duration-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                    {stat.title}
+                  </CardTitle>
+                  <stat.icon className="h-5 w-5 text-gray-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-semibold ${stat.color || 'text-gray-900'}`}>
+                    {stat.value}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {stat.change} from last week
+                  </p>
+                </CardContent>
+              </Card>
             </motion.div>
           ))}
         </div>
+
+        {/* CO₂ Stats */}
+        {MOCK_MODE && mockSummary && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[
+              { 
+                icon: Leaf, 
+                title: "Today's CO₂e", 
+                value: `${mockSummary.today_kg} kg`, 
+                change: 'Live data' 
+              },
+              { 
+                icon: Calendar, 
+                title: "MTD CO₂e", 
+                value: `${mockSummary.mtd_kg} kg`, 
+                change: 'This month' 
+              },
+              { 
+                icon: Award, 
+                title: "Eco Score", 
+                value: mockSummary.eco_score, 
+                change: `Intensity ${mockSummary.eco_details.intensity}/100 · MoM ${mockSummary.eco_details.improvement}/100`,
+                color: mockSummary.eco_score >= 80 ? '#22c55e' : mockSummary.eco_score >= 60 ? '#eab308' : '#ef4444'
+              },
+              { 
+                icon: TrendingUp, 
+                title: "# Transactions", 
+                value: mockSummary.tx_count.toString(), 
+                change: 'Last 60 days' 
+              },
+            ].map((stat, index) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+              >
+                <TiltCard>
+                  <Card className="glass-card hover:shadow-xl transition-all duration-300">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-carbon-600">
+                        {stat.title}
+                      </CardTitle>
+                      <stat.icon className="h-4 w-4 text-eco-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className={`text-2xl font-bold ${stat.color || 'text-carbon-900'}`}>
+                        {stat.value}
+                      </div>
+                      <p className="text-xs text-eco-600 mt-1">
+                        {stat.change}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TiltCard>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -409,18 +556,18 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <Card className="h-full">
-              <CardHeader>
+            <Card className="h-full bg-white border border-gray-200">
+              <CardHeader className="border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-semibold text-carbon-900">
-                    Carbon Analytics
+                  <CardTitle className="text-lg font-semibold text-gray-900">
+                    Portfolio Analytics
                   </CardTitle>
-                  <div className="flex bg-eco-50 rounded-lg p-1">
+                  <div className="flex bg-gray-50 rounded-md p-1">
                     <Button
                       variant={activeTab === 'overview' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setActiveTab('overview')}
-                      className={activeTab === 'overview' ? 'bg-eco-500 text-white' : 'text-eco-600 hover:text-eco-700'}
+                      className={activeTab === 'overview' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}
                     >
                       Overview
                     </Button>
@@ -428,7 +575,7 @@ export default function Dashboard() {
                       variant={activeTab === 'goals' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setActiveTab('goals')}
-                      className={activeTab === 'goals' ? 'bg-eco-500 text-white' : 'text-eco-600 hover:text-eco-700'}
+                      className={activeTab === 'goals' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}
                     >
                       <Target className="mr-1 h-3 w-3" />
                       Goals
@@ -444,8 +591,8 @@ export default function Dashboard() {
                 ) : (
                   <div className="space-y-4 max-h-80 overflow-y-auto">
                     {/* Add New Goal Form */}
-                    <div className="bg-eco-50 p-4 rounded-lg border border-eco-200">
-                      <h4 className="font-semibold text-eco-800 mb-3 flex items-center">
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                         <Plus className="mr-2 h-4 w-4" />
                         Add New Goal
                       </h4>
@@ -455,38 +602,51 @@ export default function Dashboard() {
                           placeholder="Goal title (e.g., Reduce carbon by 20%)"
                           value={newGoal.title}
                           onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
-                          className="w-full px-3 py-2 border border-eco-300 rounded-md focus:outline-none focus:ring-2 focus:ring-eco-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                         <textarea
                           placeholder="Description (optional)"
                           value={newGoal.description}
                           onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-                          className="w-full px-3 py-2 border border-eco-300 rounded-md focus:outline-none focus:ring-2 focus:ring-eco-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           rows={2}
                         />
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                           <input
                             type="number"
                             placeholder="Target value"
                             value={newGoal.targetValue}
                             onChange={(e) => setNewGoal({ ...newGoal, targetValue: Number(e.target.value) })}
-                            className="flex-1 px-3 py-2 border border-eco-300 rounded-md focus:outline-none focus:ring-2 focus:ring-eco-500"
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           />
                           <select
                             value={newGoal.unit}
                             onChange={(e) => setNewGoal({ ...newGoal, unit: e.target.value })}
-                            className="px-3 py-2 border border-eco-300 rounded-md focus:outline-none focus:ring-2 focus:ring-eco-500"
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
                             <option value="kg CO2e">kg CO2e</option>
                             <option value="%">%</option>
                             <option value="days">days</option>
                             <option value="$">$</option>
+                            <option value="times">times</option>
+                          </select>
+                          <select
+                            value={newGoal.category}
+                            onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="carbon">Carbon Emissions</option>
+                            <option value="transportation">Transportation</option>
+                            <option value="food">Food & Dining</option>
+                            <option value="shopping">Shopping</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="general">General</option>
                           </select>
                         </div>
                         <Button
                           onClick={addGoal}
                           disabled={!newGoal.title.trim()}
-                          className="w-full bg-eco-500 hover:bg-eco-600 text-white"
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
                         >
                           <Plus className="mr-2 h-4 w-4" />
                           Add Goal
@@ -497,7 +657,7 @@ export default function Dashboard() {
                     {/* Goals List */}
                     <div className="space-y-3">
                       {goals.length === 0 ? (
-                        <div className="text-center py-8 text-carbon-500">
+                        <div className="text-center py-8 text-gray-500">
                           <Target className="mx-auto h-12 w-12 mb-4 opacity-50" />
                           <p>No goals yet. Add your first sustainability goal above!</p>
                         </div>
@@ -508,7 +668,7 @@ export default function Dashboard() {
                             className={`p-4 rounded-lg border transition-all ${
                               goal.completed 
                                 ? 'bg-green-50 border-green-200' 
-                                : 'bg-white border-eco-200 hover:border-eco-300'
+                                : 'bg-white border-gray-200 hover:border-gray-300'
                             }`}
                           >
                             <div className="flex items-start justify-between">
@@ -520,17 +680,17 @@ export default function Dashboard() {
                                   className={`p-1 h-6 w-6 rounded-full ${
                                     goal.completed 
                                       ? 'bg-green-500 text-white hover:bg-green-600' 
-                                      : 'border-2 border-eco-300 hover:border-eco-500'
+                                      : 'border-2 border-gray-300 hover:border-gray-500'
                                   }`}
                                 >
                                   {goal.completed && <CheckCircle className="h-3 w-3" />}
                                 </Button>
                                 <div className="flex-1">
-                                  <h5 className={`font-medium ${goal.completed ? 'line-through text-green-600' : 'text-carbon-900'}`}>
+                                  <h5 className={`font-medium ${goal.completed ? 'line-through text-green-600' : 'text-gray-900'}`}>
                                     {goal.title}
                                   </h5>
                                   {goal.description && (
-                                    <p className={`text-sm mt-1 ${goal.completed ? 'text-green-500' : 'text-carbon-600'}`}>
+                                    <p className={`text-sm mt-1 ${goal.completed ? 'text-green-500' : 'text-gray-600'}`}>
                                       {goal.description}
                                     </p>
                                   )}
@@ -588,7 +748,7 @@ export default function Dashboard() {
                     onClick={handleSyncTransactions}
                   >
                     <Zap className="mr-2 h-4 w-4" />
-                    Import Transactions
+                    Refresh Data
                   </Button>
                   <Button 
                     variant="outline" 
@@ -596,7 +756,7 @@ export default function Dashboard() {
                     onClick={handleCalculateEmissions}
                   >
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Calculate Emissions
+                    Refresh Emissions Data
                   </Button>
                   <Button 
                     variant="outline" 

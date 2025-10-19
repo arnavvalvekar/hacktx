@@ -5,13 +5,15 @@ import { TiltCard } from '@/components/TiltCard'
 import { Button } from '@/components/ui/button'
 import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
-import { TrendingUp, BarChart3, PieChart, RefreshCw, Leaf, Target, AlertCircle, CheckCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { TrendingUp, BarChart3, PieChart, RefreshCw, Leaf, Target, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react'
 import { nessieService } from '@/services/nessieService'
 import type { CarbonFootprintData, AccountSummary, TransactionSummary } from '@/types/nessieTypes'
 
 export default function Insights() {
   const apiClient = useApiClient()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [carbonData, setCarbonData] = useState<CarbonFootprintData[]>([])
   const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null)
@@ -60,6 +62,7 @@ export default function Insights() {
 
   const averageCarbonPerTransaction = carbonData.length > 0 ? totalCarbonFootprint / carbonData.length : 0
   const totalSpent = carbonData.reduce((total, data) => total + data.amount, 0)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-eco-50 to-carbon-50 p-8">
       <div className="container mx-auto">
@@ -69,12 +72,16 @@ export default function Insights() {
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold text-carbon-900 mb-2">
-            Carbon Insights
-          </h1>
-          <p className="text-carbon-600 text-lg">
-            Deep dive into your carbon footprint patterns and trends
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-4xl font-bold text-carbon-900 mb-2">
+                Carbon Insights
+              </h1>
+              <p className="text-carbon-600 text-lg">
+                Deep dive into your carbon footprint patterns and trends
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         <TiltCard>
@@ -249,6 +256,18 @@ export default function Insights() {
             </CardContent>
           </Card>
         </TiltCard>
+      </div>
+
+      {/* Professional Back Button */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <Button
+          onClick={() => navigate('/dashboard')}
+          className="bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm"
+          size="sm"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Button>
       </div>
     </div>
   )

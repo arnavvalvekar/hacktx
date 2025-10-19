@@ -1,5 +1,5 @@
 import React from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Leaf } from 'lucide-react'
@@ -31,11 +31,31 @@ export function CarbonOrbit({ data, totalEmissions }: CarbonOrbitProps) {
       const percentage = ((data.value / totalEmissions) * 100).toFixed(1)
       
       return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-          <p className="font-medium text-gray-900">{data.name}</p>
-          <p className="text-sm text-gray-600">
-            {data.value.toFixed(1)} kg CO₂e ({percentage}%)
-          </p>
+        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-xl border border-gray-200/50">
+          <div className="flex items-center gap-3 mb-2">
+            <div 
+              className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
+              style={{ backgroundColor: data.color }}
+            />
+            <p className="font-semibold text-gray-900 capitalize">{data.name}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-lg font-bold text-gray-800">
+              {data.value.toFixed(1)} kg CO₂e
+            </p>
+            <p className="text-sm text-gray-600">
+              {percentage}% of total emissions
+            </p>
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div 
+                className="h-2 rounded-full transition-all duration-300"
+                style={{ 
+                  width: `${percentage}%`,
+                  backgroundColor: data.color 
+                }}
+              />
+            </div>
+          </div>
         </div>
       )
     }
@@ -81,17 +101,17 @@ export function CarbonOrbit({ data, totalEmissions }: CarbonOrbitProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80 w-full">
+          <div className="h-80 w-full overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 15, right: 15, bottom: 15, left: 15 }}>
                 <Pie
                   data={data}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
                   label={CustomLabel}
-                  outerRadius={120}
-                  innerRadius={60}
+                  outerRadius={110}
+                  innerRadius={55}
                   fill="#8884d8"
                   dataKey="value"
                   stroke="#fff"
@@ -102,15 +122,6 @@ export function CarbonOrbit({ data, totalEmissions }: CarbonOrbitProps) {
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  verticalAlign="bottom" 
-                  height={36}
-                  formatter={(value, entry: any) => (
-                    <span style={{ color: entry.color }}>
-                      {value}
-                    </span>
-                  )}
-                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -131,31 +142,6 @@ export function CarbonOrbit({ data, totalEmissions }: CarbonOrbitProps) {
             </div>
           </div>
           
-          {/* Category List */}
-          <div className="mt-4 space-y-2">
-            {data.map((item, index) => (
-              <motion.div
-                key={item.name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                className="flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm font-medium text-carbon-700 capitalize">
-                    {item.name}
-                  </span>
-                </div>
-                <div className="text-sm text-carbon-600">
-                  {item.value.toFixed(1)} kg
-                </div>
-              </motion.div>
-            ))}
-          </div>
         </CardContent>
       </Card>
     </motion.div>

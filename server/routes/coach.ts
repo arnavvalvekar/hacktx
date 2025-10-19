@@ -8,21 +8,193 @@ import { Chat } from '../models/Chat'
 
 const router = Router()
 
+// Intelligent fallback response generator
+function generateIntelligentFallback(message: string, context: any, history: any[]): string {
+  const messageLower = message.toLowerCase()
+  
+  // Extract user's data
+  const totalCarbon = context?.totalCarbon || 0
+  const ecoScore = context?.ecoScore || 0
+  const topCategories = context?.topCategories || []
+  const transactions = context?.transactions || []
+  const dashboardSummary = context?.dashboardSummary
+  
+  // Analyze spending patterns
+  const categoryBreakdown = context?.categoryBreakdown || []
+  const topCategory = categoryBreakdown[0] || { category: 'Shopping', value: 0, pct: 0 }
+  
+  // Generate contextual responses based on keywords and data
+  if (messageLower.includes('finance') || messageLower.includes('money') || messageLower.includes('budget')) {
+    return `💰 **Smart Financial Sustainability Tips:**
+
+Based on your current Eco Score of ${ecoScore}/100 and ${totalCarbon.toFixed(1)} kg CO₂e this month, here's how to optimize both your finances and environmental impact:
+
+**Immediate Actions:**
+• **Reduce ${topCategory.category} spending** (${topCategory.pct.toFixed(1)}% of your emissions) - This could save you $50-200/month while cutting ${(totalCarbon * topCategory.pct / 100 * 0.3).toFixed(1)} kg CO₂e
+• **Set up automatic transfers** to a high-yield savings account for eco-friendly purchases
+• **Use cashback apps** like Rakuten for sustainable brands (earn 2-5% back)
+
+**Long-term Strategy:**
+• **Green investments**: Consider ESG funds or green bonds for 5-15% annual returns
+• **Energy efficiency**: LED bulbs, smart thermostats pay for themselves in 1-2 years
+• **Transportation**: If you drive frequently, consider an EV or hybrid - federal tax credits up to $7,500
+
+**Your biggest opportunity**: Focus on ${topCategory.category} - reducing this by 20% could save you $100+/month and ${(totalCarbon * topCategory.pct / 100 * 0.2).toFixed(1)} kg CO₂e monthly.
+
+Would you like specific tips for any category?`
+  }
+  
+  if (messageLower.includes('emission') || messageLower.includes('carbon') || messageLower.includes('reduce')) {
+    return `🌱 **Personalized Carbon Reduction Plan:**
+
+Your current footprint: **${totalCarbon.toFixed(1)} kg CO₂e** this month
+Eco Score: **${ecoScore}/100** ${ecoScore >= 80 ? '🌿 Excellent!' : ecoScore >= 60 ? '🌱 Good progress!' : '🌳 Room for improvement'}
+
+**Priority Actions (Biggest Impact):**
+1. **${topCategory.category}** (${topCategory.pct.toFixed(1)}% of emissions)
+   - Potential reduction: ${(totalCarbon * topCategory.pct / 100 * 0.4).toFixed(1)} kg CO₂e/month
+   - Cost savings: $50-150/month
+
+2. **Transportation** (if applicable)
+   - Carpool 2x/week: -${(totalCarbon * 0.15).toFixed(1)} kg CO₂e/month
+   - Public transit: -${(totalCarbon * 0.25).toFixed(1)} kg CO₂e/month
+
+3. **Food & Dining**
+   - Local/seasonal foods: -${(totalCarbon * 0.1).toFixed(1)} kg CO₂e/month
+   - Reduce food waste: -${(totalCarbon * 0.08).toFixed(1)} kg CO₂e/month
+
+**Quick Wins (This Week):**
+• Switch to LED bulbs: -0.5 kg CO₂e/month, save $10/month
+• Unplug electronics: -0.3 kg CO₂e/month, save $5/month
+• Shorter showers: -0.4 kg CO₂e/month, save $8/month
+
+**Goal**: Reduce to ${(totalCarbon * 0.7).toFixed(1)} kg CO₂e/month (30% reduction) = $200+/month savings
+
+Which area interests you most?`
+  }
+  
+  if (messageLower.includes('goal') || messageLower.includes('target')) {
+    return `🎯 **Setting Realistic Sustainability Goals:**
+
+Based on your current ${totalCarbon.toFixed(1)} kg CO₂e/month footprint, here are achievable targets:
+
+**30-Day Goals:**
+• Reduce ${topCategory.category} spending by 15% → Save ${(totalCarbon * topCategory.pct / 100 * 0.15).toFixed(1)} kg CO₂e + $40/month
+• Switch 3 high-emission purchases to eco-alternatives → Save ${(totalCarbon * 0.1).toFixed(1)} kg CO₂e
+• Track daily habits for 1 week → Identify 2-3 optimization opportunities
+
+**90-Day Goals:**
+• Achieve Eco Score of ${Math.min(ecoScore + 15, 100)}/100
+• Reduce total footprint to ${(totalCarbon * 0.8).toFixed(1)} kg CO₂e/month (20% reduction)
+• Save $300+ through sustainable choices
+
+**SMART Goal Framework:**
+- **Specific**: Focus on ${topCategory.category} (your biggest impact area)
+- **Measurable**: Track weekly spending and CO₂e
+- **Achievable**: 15-20% reduction is realistic
+- **Relevant**: Aligns with your ${ecoScore}/100 Eco Score
+- **Time-bound**: 30-day milestones
+
+**Success Metrics:**
+• Weekly CO₂e tracking
+• Monthly savings amount
+• Eco Score improvement
+• Number of sustainable swaps
+
+Ready to set your first goal? I can help you create a specific action plan!`
+  }
+  
+  if (messageLower.includes('alternative') || messageLower.includes('sustainable') || messageLower.includes('eco-friendly')) {
+    return `♻️ **Sustainable Alternatives for Your Spending:**
+
+**${topCategory.category} Alternatives** (${topCategory.pct.toFixed(1)}% of your emissions):
+${topCategory.category === 'Electronics' ? 
+  `• **Refurbished devices**: Save 30-50% + reduce e-waste
+• **Energy-efficient models**: Look for Energy Star ratings
+• **Repair vs Replace**: Fix instead of buying new` :
+topCategory.category === 'Food' ?
+  `• **Local farmers markets**: Fresher, lower emissions
+• **Plant-based options**: 50% lower carbon footprint
+• **Bulk buying**: Reduce packaging waste` :
+topCategory.category === 'Transportation' ?
+  `• **Public transit**: 70% lower emissions than driving
+• **Bike sharing**: Zero emissions + exercise
+• **Carpooling**: Split costs and emissions` :
+  `• **Second-hand shopping**: Reduce manufacturing impact
+• **Quality over quantity**: Buy less, buy better
+• **Local businesses**: Support community + lower shipping`}
+
+**General Sustainable Swaps:**
+• **Reusable containers**: Replace single-use items
+• **Digital receipts**: Reduce paper waste
+• **Energy-efficient appliances**: Long-term savings
+• **Sustainable brands**: Look for B-Corp certifications
+
+**Financial Benefits:**
+• Average savings: $50-200/month
+• Tax incentives: Up to $7,500 for EVs, $2,000 for solar
+• Reduced utility bills: 10-30% savings
+
+**Your Impact Potential:**
+Reducing ${topCategory.category} by 25% could save ${(totalCarbon * topCategory.pct / 100 * 0.25).toFixed(1)} kg CO₂e/month + $75/month
+
+Which category would you like specific alternatives for?`
+  }
+  
+  // Default response for general questions
+  return `🌍 **Your Personalized Eco-Financial Guidance:**
+
+I've analyzed your spending patterns and here's what I found:
+
+**Current Status:**
+• Monthly CO₂e: ${totalCarbon.toFixed(1)} kg
+• Eco Score: ${ecoScore}/100 ${ecoScore >= 80 ? '🌿' : ecoScore >= 60 ? '🌱' : '🌳'}
+• Top impact area: **${topCategory.category}** (${topCategory.pct.toFixed(1)}% of emissions)
+
+**Key Opportunities:**
+1. **Focus on ${topCategory.category}** - Your biggest impact area
+2. **Set realistic goals** - Aim for 20-30% reduction
+3. **Track progress** - Monitor weekly changes
+4. **Celebrate wins** - Small changes add up!
+
+**Immediate Actions:**
+• Review your last 10 transactions in ${topCategory.category}
+• Identify 2-3 sustainable alternatives
+• Set a monthly spending limit for high-emission categories
+• Track your Eco Score weekly
+
+**Expected Results:**
+• Reduce CO₂e by ${(totalCarbon * 0.2).toFixed(1)} kg/month
+• Save $100-300/month through smarter choices
+• Improve Eco Score to ${Math.min(ecoScore + 20, 100)}/100
+
+What specific area would you like help with? I can provide detailed guidance on finances, emissions reduction, goal setting, or sustainable alternatives!`
+}
+
 // Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.LLM_API_KEY || '',
 })
 
-// Initialize Gemini client
-console.log('🔑 COACH DEBUG: Gemini API Key available:', !!process.env.GEMINI_API_KEY)
-console.log('🔑 COACH DEBUG: API Key length:', process.env.GEMINI_API_KEY?.length || 0)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+// Initialize Gemini client (will be initialized when needed)
+let genAI: GoogleGenerativeAI | null = null
+
+function initializeGeminiClient() {
+  if (!genAI) {
+    console.log('🔑 COACH DEBUG: Initializing Gemini client...')
+    console.log('🔑 COACH DEBUG: Gemini API Key available:', !!process.env.GEMINI_API_KEY)
+    console.log('🔑 COACH DEBUG: API Key length:', process.env.GEMINI_API_KEY?.length || 0)
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+  }
+  return genAI
+}
 
 // Test endpoint to verify Gemini API
 router.get('/test', async (req, res) => {
   try {
     console.log('🧪 COACH TEST: Testing Gemini API connection...')
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    const geminiClient = initializeGeminiClient()
+    const model = geminiClient.getGenerativeModel({ model: 'gemini-2.5-flash' })
     const result = await model.generateContent('Hello, respond with "Gemini API is working"')
     const response = await result.response
     const text = response.text()
@@ -48,15 +220,40 @@ router.get('/test', async (req, res) => {
 router.post('/chat', async (req: AuthRequest, res, next) => {
   try {
     console.log('🤖 COACH DEBUG: Received chat request')
+    console.log('🔑 COACH DEBUG: Gemini API Key available:', !!process.env.GEMINI_API_KEY)
+    console.log('🔑 COACH DEBUG: API Key length:', process.env.GEMINI_API_KEY?.length || 0)
+    
     const { message, history, context } = req.body
     
     console.log('🤖 COACH DEBUG: Message:', message?.substring(0, 100) + '...')
     console.log('🤖 COACH DEBUG: History length:', history?.length || 0)
     console.log('🤖 COACH DEBUG: Context available:', !!context)
     
+    // Validate input
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       console.log('❌ COACH ERROR: Invalid message provided')
-      return res.status(400).json({ error: 'Message is required and must be a non-empty string' })
+      return res.status(400).json({ 
+        success: false,
+        error: 'Message is required and must be a non-empty string',
+        data: null
+      })
+    }
+    
+    // Check if API key is available
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim().length === 0) {
+      console.log('❌ COACH ERROR: Gemini API key not configured')
+      const fallbackResponse = generateIntelligentFallback(message, context, history)
+      return res.json({
+        success: true,
+        data: {
+          response: fallbackResponse,
+          context: {
+            model: 'fallback-no-api-key',
+            error: 'Gemini API key not configured',
+            timestamp: new Date().toISOString()
+          }
+        }
+      })
     }
     
     // Get user from database (fallback to mock data if not found)
@@ -77,12 +274,12 @@ router.post('/chat', async (req: AuthRequest, res, next) => {
       carbonContext = `
 YOUR CURRENT CARBON FOOTPRINT DATA:
 - Total Carbon Footprint: ${totalCarbon.toFixed(2)} kg CO2e
-- Top Categories: ${topCategories.map(([cat, val]) => `${cat} (${val.toFixed(2)} kg CO2e)`).join(', ')}
+- Top Categories: ${topCategories.map(([cat, val]: [string, number]) => `${cat} (${val.toFixed(2)} kg CO2e)`).join(', ')}
 - Transactions Tracked: ${transactionCount}
 - Average per Transaction: ${transactionCount > 0 ? (totalCarbon / transactionCount).toFixed(2) : '0.00'} kg CO2e
 
 RECENT TRANSACTION CATEGORIES:
-${context.carbonData.slice(0, 10).map(data => `- ${data.category.join(', ')}: ${data.carbonFootprint.toFixed(2)} kg CO2e (${new Date(data.date).toLocaleDateString()})`).join('\n')}
+${context.carbonData.slice(0, 10).map((data: any) => `- ${data.category.join(', ')}: ${data.carbonFootprint.toFixed(2)} kg CO2e (${new Date(data.date).toLocaleDateString()})`).join('\n')}
 `
     } else {
       carbonContext = `
@@ -114,25 +311,27 @@ YOUR EXPERTISE:
 - Personal finance optimization for sustainability
 
 RESPONSE GUIDELINES:
-1. Always provide specific, actionable advice tailored to their data
-2. Use their carbon footprint data to give personalized recommendations
-3. Suggest concrete alternatives with estimated carbon savings
-4. Keep responses conversational but informative (150-250 words)
-5. Be encouraging and supportive, never judgmental
-6. Connect financial savings to environmental benefits
-7. Provide immediate steps they can take today
-8. If they ask about specific categories, reference their actual data
+1. For simple greetings (hello, hi, how are you): Give a brief, friendly response (1-2 sentences) and redirect to sustainability topics
+2. For inappropriate or off-topic queries: Politely redirect to your purpose with encouraging language
+3. Always provide specific, actionable advice tailored to their data when discussing finances/sustainability
+4. Use their carbon footprint data to give personalized recommendations
+5. Suggest concrete alternatives with estimated carbon savings
+6. Keep responses conversational but informative (150-250 words for financial topics)
+7. Be encouraging and supportive, never judgmental
+8. Connect financial savings to environmental benefits
+9. Provide immediate steps they can take today
 
-EXAMPLES OF GOOD RESPONSES:
-- "Based on your $X spending on [category], you could save Y kg CO2e by..."
-- "Your transportation emissions are X kg - here are 3 specific ways to reduce them..."
-- "I notice you spend $X on dining out. Here's how to make eco-friendly choices..."
+EXAMPLES OF APPROPRIATE RESPONSES:
+- Greeting: "Hello! I'm here to help you reduce your carbon footprint through smart financial decisions. What would you like to know about your spending habits?"
+- Off-topic: "I'm focused on helping you make sustainable financial choices that benefit both your wallet and the planet. Let's talk about your carbon footprint and how we can reduce it together!"
+- Financial advice: "Based on your $X spending on [category], you could save Y kg CO2e by..."
 
-Remember: Focus on practical, immediate actions that save money AND reduce carbon emissions.`
+Remember: Stay focused on your purpose - helping users save money while reducing their environmental impact.`
     
     // Get the Gemini model
     console.log('🤖 COACH DEBUG: Getting Gemini model...')
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    const geminiClient = initializeGeminiClient()
+    const model = geminiClient.getGenerativeModel({ model: 'gemini-2.5-flash' })
     console.log('🤖 COACH DEBUG: Model obtained successfully')
     
     // Create the full prompt with system context and conversation history
@@ -206,29 +405,55 @@ Remember: Focus on practical, immediate actions that save money AND reduce carbo
       stack: error instanceof Error ? error.stack : undefined
     })
     
-    // Determine if it's an API key issue
-    const isApiKeyError = error instanceof Error && (
-      error.message.includes('API_KEY') || 
-      error.message.includes('authentication') ||
-      error.message.includes('403')
-    )
+    // Determine error type and provide appropriate response
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const isApiKeyError = errorMessage.includes('API Key') || errorMessage.includes('403') || errorMessage.includes('Forbidden')
+    const isNetworkError = errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('ECONNREFUSED')
     
     // Fallback response if Gemini fails
-    const fallbackResponse = isApiKeyError 
-      ? "I'm currently experiencing technical difficulties with my AI system. Please try again in a few moments, or contact support if the issue persists."
-      : `I understand you're looking for ways to reduce your carbon footprint. Based on your spending patterns, I'd recommend focusing on reducing high-emission categories like transportation and food. Consider carpooling, using public transport, or choosing local, seasonal foods. These small changes can significantly reduce your environmental impact while saving money. Would you like specific advice on any particular category?`
+    const fallbackResponse = generateIntelligentFallback(req.body.message, req.body.context, req.body.history)
     
-    res.json({
-      success: true,
-      data: {
-        response: fallbackResponse,
-        context: {
-          model: 'fallback',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
+    // Return appropriate status code based on error type
+    if (isApiKeyError) {
+      console.log('🔑 COACH ERROR: API Key issue detected, using fallback')
+      return res.json({
+        success: true,
+        data: {
+          response: fallbackResponse,
+          context: {
+            model: 'fallback-api-key-error',
+            error: 'API Key authentication failed',
+            timestamp: new Date().toISOString()
+          }
         }
-      }
-    })
+      })
+    } else if (isNetworkError) {
+      console.log('🌐 COACH ERROR: Network issue detected, using fallback')
+      return res.json({
+        success: true,
+        data: {
+          response: fallbackResponse,
+          context: {
+            model: 'fallback-network-error',
+            error: 'Network connectivity issue',
+            timestamp: new Date().toISOString()
+          }
+        }
+      })
+    } else {
+      console.log('🔄 COACH ERROR: General error detected, using fallback')
+      return res.json({
+        success: true,
+        data: {
+          response: fallbackResponse,
+          context: {
+            model: 'fallback-general-error',
+            error: errorMessage,
+            timestamp: new Date().toISOString()
+          }
+        }
+      })
+    }
   }
 })
 
@@ -317,18 +542,13 @@ Transaction count: ${recentEmissions.length}
     // Generate AI response
     const prompt = ecoCoachPrompt(summary, context?.category || context?.period)
     
-    const response = await anthropic.messages.create({
+    const response = await anthropic.completions.create({
       model: 'claude-3-sonnet-20240229',
-      max_tokens: 500,
-      messages: [
-        {
-          role: 'user',
-          content: `${prompt}\n\nUser question: ${question}`
-        }
-      ]
+      max_tokens_to_sample: 500,
+      prompt: `${prompt}\n\nUser question: ${question}`
     })
     
-    const aiResponse = response.content[0].type === 'text' ? response.content[0].text : ''
+    const aiResponse = response.completion || ''
     
     // Parse JSON response
     let parsedResponse
@@ -455,6 +675,57 @@ router.get('/history', async (req: AuthRequest, res, next) => {
     })
     
   } catch (error) {
+    next(error)
+  }
+})
+
+// Create goal from coach suggestion
+router.post('/create-goal', async (req: AuthRequest, res, next) => {
+  try {
+    const { title, description, category, targetValue, unit } = req.body
+    
+    if (!title || !description || !category) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Title, description, and category are required' 
+      })
+    }
+    
+    // Get user from database
+    const user = await User.findOne({ auth0Id: req.user?.sub })
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      })
+    }
+    
+    // Create goal object
+    const goal = {
+      id: Date.now().toString(),
+      title,
+      description,
+      targetValue: targetValue || 0,
+      currentValue: 0,
+      unit: unit || 'kg CO2e',
+      category,
+      completed: false,
+      createdAt: new Date(),
+      source: 'coach-suggestion'
+    }
+    
+    // For now, we'll return the goal to be saved on the frontend
+    // In a full implementation, you'd save this to a goals collection in MongoDB
+    res.json({
+      success: true,
+      data: {
+        goal,
+        message: 'Goal created successfully'
+      }
+    })
+    
+  } catch (error) {
+    console.error('Goal creation error:', error)
     next(error)
   }
 })

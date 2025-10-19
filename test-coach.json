@@ -1,0 +1,10 @@
+{
+  "message": "hey can u tell me the best way to go about my finances while saving the ecosystem from harmful emissions",
+  "history": [],
+  "context": {
+    "totalCarbon": 4705.13,
+    "ecoScore": 53,
+    "topCategories": [["Electronics", 1227.34]],
+    "categoryBreakdown": [{"category": "Electronics", "value": 1227.34, "pct": 26.1}]
+  }
+}

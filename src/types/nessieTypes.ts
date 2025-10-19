@@ -97,6 +97,11 @@ export interface Transaction {
   account_id: string;
   merchant_id?: string;
   category?: string[];
+  // CO₂ estimation properties (optional for mock mode)
+  co2e_kg?: number;
+  method?: string;
+  confidence?: string;
+  mcc?: string;
 }
 
 // Nessie API Response Types

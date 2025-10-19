@@ -16,7 +16,7 @@ import transactionRoutes from './routes/transactions'
 import carbonRoutes from './routes/carbon'
 import coachRoutes from './routes/coach'
 
-dotenv.config()
+dotenv.config({ path: './.env' })
 
 const app = express()
 const PORT = process.env.PORT || 8080

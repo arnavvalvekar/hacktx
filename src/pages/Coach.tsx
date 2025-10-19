@@ -1,27 +1,31 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { TiltCard } from '@/components/TiltCard'
 import { Button } from '@/components/ui/button'
 // import { Input } from '@/components/ui/input' // Input component not available
 import { useApiClient } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
-import { MessageCircle, Send, Bot, User, Leaf } from 'lucide-react'
-import { nessieService } from '@/services/nessieService'
-import type { CarbonFootprintData } from '@/types/nessieTypes'
+import { useNavigate } from 'react-router-dom'
+import { MessageCircle, Send, Bot, User, Leaf, Target, ArrowLeft } from 'lucide-react'
+// @ts-ignore - JavaScript module
+import { getTransactions, getDashboardSummary, getCategoryBreakdown } from '@/services/mockData'
+import type { MockTransaction } from '@/types/mockTypes'
 
 export default function Coach() {
   const apiClient = useApiClient()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [messages, setMessages] = useState<any[]>([])
   const [inputMessage, setInputMessage] = useState('')
-  const [carbonData, setCarbonData] = useState<CarbonFootprintData[]>([])
+  const [transactions, setTransactions] = useState<MockTransaction[]>([])
+  const [dashboardSummary, setDashboardSummary] = useState<any>(null)
+  const [categoryBreakdown, setCategoryBreakdown] = useState<any[]>([])
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
     if (!initialized) {
-      loadCarbonData()
+      loadTransactionData()
       loadConversationHistory()
       setInitialized(true)
     }
@@ -69,6 +73,101 @@ export default function Coach() {
     })
   }
 
+  // Create goal from coach suggestion and navigate to dashboard
+  const createGoalFromSuggestion = async (suggestion: any) => {
+    try {
+      // Create goal object locally
+      const goal = {
+        id: Date.now().toString(),
+        title: suggestion.title,
+        description: suggestion.description,
+        targetValue: suggestion.targetValue || 0,
+        currentValue: 0,
+        unit: suggestion.unit || 'kg CO2e',
+        category: suggestion.category,
+        completed: false,
+        createdAt: new Date(),
+        source: 'coach-suggestion',
+        isPrefilled: true // Flag to indicate this should be pre-filled in dashboard
+      }
+
+      // Store the goal to be pre-filled in dashboard
+      localStorage.setItem('ecofin-prefill-goal', JSON.stringify(goal))
+
+      toast({
+        title: "Goal Ready! 🎯",
+        description: `Taking you to Dashboard to customize "${suggestion.title}"`,
+      })
+
+      // Navigate to dashboard with goals tab active
+      navigate('/dashboard?tab=goals')
+      
+    } catch (error) {
+      console.error('Error preparing goal:', error)
+      toast({
+        title: "Error",
+        description: "Failed to prepare goal. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Parse coach response for actionable suggestions
+  const parseSuggestionsFromResponse = (content: string) => {
+    const suggestions: any[] = []
+    
+    // Look for patterns that indicate actionable suggestions
+    const lines = content.split('\n').filter(line => line.trim())
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+      
+      // Look for numbered suggestions or bullet points with actionable content
+      if (line.match(/^\d+\./) || line.match(/^[•\-]/)) {
+        const nextLine = lines[i + 1] || ''
+        
+        // Extract category from context
+        let category = 'general'
+        if (content.toLowerCase().includes('transportation') || line.toLowerCase().includes('transport') || line.toLowerCase().includes('travel')) {
+          category = 'transportation'
+        } else if (content.toLowerCase().includes('food') || content.toLowerCase().includes('dining') || line.toLowerCase().includes('meal')) {
+          category = 'food'
+        } else if (content.toLowerCase().includes('shopping') || line.toLowerCase().includes('purchase') || line.toLowerCase().includes('buy')) {
+          category = 'shopping'
+        } else if (content.toLowerCase().includes('energy') || line.toLowerCase().includes('electricity') || line.toLowerCase().includes('utilities')) {
+          category = 'utilities'
+        }
+        
+        // Extract target value if mentioned
+        let targetValue = 0
+        let unit = 'kg CO2e'
+        const percentMatch = line.match(/(\d+)%/i)
+        const kgMatch = line.match(/(\d+(?:\.\d+)?)\s*kg/i)
+        
+        if (percentMatch) {
+          targetValue = parseInt(percentMatch[1])
+          unit = '%'
+        } else if (kgMatch) {
+          targetValue = parseFloat(kgMatch[1])
+          unit = 'kg CO2e'
+        }
+        
+        // Create suggestion object
+        const suggestion = {
+          title: line.replace(/^\d+\.\s*/, '').replace(/^[•\-]\s*/, '').substring(0, 50) + (line.length > 50 ? '...' : ''),
+          description: line + (nextLine ? ' ' + nextLine : ''),
+          category,
+          targetValue,
+          unit
+        }
+        
+        suggestions.push(suggestion)
+      }
+    }
+    
+    return suggestions.slice(0, 3) // Limit to 3 suggestions
+  }
+
   // Retry mechanism for failed requests (currently unused but available for future use)
   // const retryLastMessage = async () => {
   //   if (messages.length > 0) {
@@ -80,33 +179,51 @@ export default function Coach() {
   //   }
   // }
 
-  const loadCarbonData = () => {
-    const carbonFootprintData = nessieService.getCarbonFootprintData()
-    setCarbonData(carbonFootprintData)
-    
-    // Add initial welcome message with carbon insights
-    const totalCarbon = carbonFootprintData.reduce((sum, data) => sum + data.carbonFootprint, 0)
-    const categoryBreakdown = carbonFootprintData.reduce((acc, data) => {
-      const category = data.category[0] || 'Other'
-      acc[category] = (acc[category] || 0) + data.carbonFootprint
-      return acc
-    }, {} as Record<string, number>)
+  const loadTransactionData = async () => {
+    try {
+      // Load realistic transaction data with accurate CO₂ calculations
+      const [txData, summaryData, breakdownData] = await Promise.all([
+        getTransactions(),
+        getDashboardSummary(),
+        getCategoryBreakdown()
+      ])
+      
+      setTransactions(txData)
+      setDashboardSummary(summaryData)
+      setCategoryBreakdown(breakdownData)
+      
+      // Add initial welcome message with accurate carbon insights
+      const totalCarbon = summaryData.mtd_kg
+      const ecoScore = summaryData.eco_score
+      const topCategory = breakdownData[0] // Already sorted by value
+      
+      const welcomeMessage = {
+        role: 'assistant',
+        content: `🌱 Hello! I'm your Eco Coach. I've analyzed your recent spending patterns and here's what I found:
 
-    const topCategory = Object.entries(categoryBreakdown).sort(([,a], [,b]) => b - a)[0]
-    
-    const welcomeMessage = {
-      role: 'assistant',
-      content: `🌱 Hello! I'm your Eco Coach. I can see you've tracked ${totalCarbon.toFixed(2)} kg CO₂ from your recent transactions. Your highest impact category is ${topCategory?.[0] || 'shopping'} with ${topCategory?.[1]?.toFixed(2) || 0} kg CO₂. 
+📊 **Your Carbon Footprint Summary:**
+• Total CO₂e this month: **${totalCarbon.toFixed(2)} kg**
+• Your Eco Score: **${ecoScore}/100** ${ecoScore >= 80 ? '🌿' : ecoScore >= 60 ? '🌱' : '🌳'}
+• Top spending category: **${topCategory?.category}** (${topCategory?.pct.toFixed(1)}% of emissions)
 
 How can I help you reduce your carbon footprint today? Ask me about:
 • Sustainable alternatives for your spending habits
 • Tips to reduce emissions in specific categories  
 • Setting realistic carbon reduction goals
 • Eco-friendly merchant recommendations`,
-      timestamp: new Date()
+        timestamp: new Date()
+      }
+      
+      setMessages([welcomeMessage])
+      
+    } catch (error) {
+      console.error('Error loading transaction data:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load transaction data",
+        variant: "destructive"
+      })
     }
-    
-    setMessages([welcomeMessage])
   }
 
   const sendMessage = async () => {
@@ -118,6 +235,61 @@ How can I help you reduce your carbon footprint today? Ask me about:
     setMessages(prev => [...prev, userMessage])
     const currentMessage = inputMessage
     setInputMessage('')
+
+    // Check for simple greetings and provide quick responses
+    const messageLower = currentMessage.toLowerCase().trim()
+    
+    // Simple greeting responses
+    if (messageLower.match(/^(hello|hi|hey|good morning|good afternoon|good evening|how are you|what's up|sup)$/)) {
+      const greetingResponses = [
+        "Hello! I'm here to help you reduce your carbon footprint through smart financial decisions. What would you like to know about your spending habits?",
+        "Hi there! I'm your Eco Coach, ready to help you make sustainable financial choices. What area of your spending would you like to optimize?",
+        "Hey! I'm focused on helping you save money while reducing your environmental impact. What can I help you with today?"
+      ]
+      
+      const quickResponse = greetingResponses[Math.floor(Math.random() * greetingResponses.length)]
+      const botMessage = { 
+        role: 'assistant', 
+        content: quickResponse,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, botMessage])
+      return
+    }
+
+    // Check for inappropriate or off-topic queries
+    const inappropriatePatterns = [
+      /^(tell me a joke|joke|funny)/,
+      /^(what's the weather|weather)/,
+      /^(what time is it|time)/,
+      /^(who are you|what are you)/,
+      /^(help me with|how do i).*(homework|assignment|essay|paper)/,
+      /^(can you|please).*(write|create|generate).*(story|poem|song|code)/,
+      /^(do you like|what's your favorite)/,
+      /^(personal|private|relationship|dating)/,
+      /^(medical|health|doctor|medicine)/,
+      /^(illegal|crime|criminal)/,
+      /^(hate|stupid|dumb|idiot)/
+    ]
+
+    const isInappropriate = inappropriatePatterns.some(pattern => pattern.test(messageLower))
+    
+    if (isInappropriate) {
+      const redirectResponses = [
+        "I'm focused on helping you make sustainable financial choices that benefit both your wallet and the planet. Let's talk about your carbon footprint and how we can reduce it together!",
+        "I'm here to help you with financial sustainability and carbon footprint reduction. What would you like to know about optimizing your spending for environmental impact?",
+        "Let's stick to our purpose - I'm here to help you save money while reducing your carbon emissions. What area of your spending would you like to focus on?"
+      ]
+      
+      const redirectResponse = redirectResponses[Math.floor(Math.random() * redirectResponses.length)]
+      const botMessage = { 
+        role: 'assistant', 
+        content: redirectResponse,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, botMessage])
+      return
+    }
     setIsLoading(true)
 
     try {
@@ -126,23 +298,21 @@ How can I help you reduce your carbon footprint today? Ask me about:
         message: currentMessage,
         history: messages,
         context: {
-          carbonData: carbonData,
-          totalCarbon: carbonData.reduce((sum, data) => sum + data.carbonFootprint, 0),
-          topCategories: Object.entries(
-            carbonData.reduce((acc, data) => {
-              const category = data.category[0] || 'Other'
-              acc[category] = (acc[category] || 0) + data.carbonFootprint
-              return acc
-            }, {} as Record<string, number>)
-          ).sort(([,a], [,b]) => b - a).slice(0, 3)
+          transactions: transactions.slice(0, 20), // Recent transactions
+          dashboardSummary: dashboardSummary,
+          categoryBreakdown: categoryBreakdown,
+          totalCarbon: dashboardSummary?.mtd_kg || 0,
+          ecoScore: dashboardSummary?.eco_score || 0,
+          topCategories: categoryBreakdown.slice(0, 3).map(cat => [cat.category, cat.value])
         }
       };
       
       console.log('🔍 COACH DEBUG: Request data:', {
         message: requestData.message,
         historyLength: requestData.history.length,
-        carbonDataLength: requestData.context.carbonData.length,
+        transactionsLength: requestData.context.transactions.length,
         totalCarbon: requestData.context.totalCarbon,
+        ecoScore: requestData.context.ecoScore,
         topCategories: requestData.context.topCategories
       });
       
@@ -151,10 +321,14 @@ How can I help you reduce your carbon footprint today? Ask me about:
       
       console.log('✅ COACH DEBUG: Response received:', response.data);
       
+      const responseContent = response.data.data?.response || 'Sorry, I could not process your request.'
+      const suggestions = parseSuggestionsFromResponse(responseContent)
+      
       const botMessage = { 
         role: 'assistant', 
-        content: response.data.data?.response || 'Sorry, I could not process your request.',
-        timestamp: new Date()
+        content: responseContent,
+        timestamp: new Date(),
+        suggestions: suggestions.length > 0 ? suggestions : undefined
       }
       setMessages(prev => [...prev, botMessage])
       
@@ -218,24 +392,31 @@ How can I help you reduce your carbon footprint today? Ask me about:
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl font-bold text-carbon-900 mb-2">
-                AI Eco Coach
-              </h1>
-              <p className="text-carbon-600 text-lg">
-                Get personalized recommendations to reduce your carbon footprint
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearConversation}
-                className="text-red-600 border-red-300 hover:bg-red-50"
-              >
-                Clear Chat
-              </Button>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+                  Financial Advisory Assistant
+                </h1>
+                <p className="text-gray-600 text-sm">
+                  AI-powered sustainability guidance based on your spending patterns
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Assistant Status</p>
+                  <p className="text-sm font-medium text-green-600">Online</p>
+                </div>
+                <div className="w-px h-8 bg-gray-200"></div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearConversation}
+                  className="text-gray-600 hover:text-gray-900 border-gray-300"
+                >
+                  Clear Chat
+                </Button>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -247,61 +428,58 @@ How can I help you reduce your carbon footprint today? Ask me about:
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-8"
         >
-          <TiltCard>
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Leaf className="h-5 w-5 text-eco-500" />
-                  Your Carbon Footprint Summary
-                </CardTitle>
-                <CardDescription>
-                  Current carbon impact from your transactions
-                </CardDescription>
-              </CardHeader>
+          <Card className="bg-white border border-gray-200">
+            <CardHeader className="border-b border-gray-100">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                <Leaf className="h-5 w-5 text-gray-600" />
+                Portfolio Impact Summary
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Current environmental impact from your transactions
+              </CardDescription>
+            </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-eco-50 rounded-lg">
-                    <div className="text-2xl font-bold text-eco-600">
-                      {carbonData.reduce((sum, data) => sum + data.carbonFootprint, 0).toFixed(2)} kg CO₂
+                  <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {dashboardSummary?.mtd_kg?.toFixed(2) || '0.00'} kg CO₂
                     </div>
-                    <div className="text-sm text-carbon-600">Total Carbon Footprint</div>
+                    <div className="text-sm text-gray-600">Total Carbon Footprint</div>
                   </div>
-                  <div className="text-center p-4 bg-eco-50 rounded-lg">
-                    <div className="text-2xl font-bold text-eco-600">
-                      {carbonData.length}
+                  <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {transactions.length}
                     </div>
-                    <div className="text-sm text-carbon-600">Transactions Tracked</div>
+                    <div className="text-sm text-gray-600">Transactions Tracked</div>
                   </div>
-                  <div className="text-center p-4 bg-eco-50 rounded-lg">
-                    <div className="text-2xl font-bold text-eco-600">
-                      {carbonData.length > 0 ? (carbonData.reduce((sum, data) => sum + data.carbonFootprint, 0) / carbonData.length).toFixed(2) : '0.00'} kg
+                  <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {dashboardSummary?.eco_score || 0}/100
                     </div>
-                    <div className="text-sm text-carbon-600">Average per Transaction</div>
+                    <div className="text-sm text-gray-600">Eco Score</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </TiltCard>
         </motion.div>
 
-        <TiltCard>
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-eco-500" />
-                Chat with Eco Coach
-              </CardTitle>
-              <CardDescription>
-                AI-powered sustainability guidance based on your spending patterns
-              </CardDescription>
-            </CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader className="border-b border-gray-100">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <MessageCircle className="h-5 w-5 text-gray-600" />
+              Financial Advisory Chat
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              AI-powered sustainability guidance based on your spending patterns
+            </CardDescription>
+          </CardHeader>
             <CardContent>
               <div className="h-96 flex flex-col">
                 {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-4 bg-white rounded-lg border border-carbon-200">
+                <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   {messages.length === 0 ? (
-                    <div className="text-center text-carbon-500">
-                      <Bot className="h-12 w-12 mx-auto mb-2 text-eco-500" />
+                    <div className="text-center text-gray-500">
+                      <Bot className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                       <p>Ask me anything about sustainability and reducing your carbon footprint!</p>
                     </div>
                   ) : (
@@ -315,8 +493,8 @@ How can I help you reduce your carbon footprint today? Ask me about:
                       >
                         <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                           message.role === 'user' 
-                            ? 'bg-eco-500 text-white' 
-                            : 'bg-carbon-100 text-carbon-900'
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-white text-gray-900 border border-gray-200'
                         }`}>
                           <div className="flex items-center gap-2 mb-1">
                             {message.role === 'user' ? (
@@ -328,7 +506,28 @@ How can I help you reduce your carbon footprint today? Ask me about:
                               {message.role === 'user' ? 'You' : 'Eco Coach'}
                             </span>
                           </div>
-                          <p className="text-sm">{message.content}</p>
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          
+                          {/* Goal Creation Buttons */}
+                          {message.role === 'assistant' && message.suggestions && message.suggestions.length > 0 && (
+                            <div className="mt-3 pt-2 border-t border-gray-200">
+                              <p className="text-xs text-gray-600 mb-2">💡 Turn suggestions into goals:</p>
+                              <div className="space-y-1">
+                                {message.suggestions.map((suggestion: any, suggestionIndex: number) => (
+                                  <Button
+                                    key={suggestionIndex}
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full text-xs h-8 bg-white hover:bg-eco-50 border-eco-200 hover:border-eco-300 text-eco-700"
+                                    onClick={() => createGoalFromSuggestion(suggestion)}
+                                  >
+                                    <Target className="h-3 w-3 mr-1" />
+                                    {suggestion.title}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     ))
@@ -359,12 +558,12 @@ How can I help you reduce your carbon footprint today? Ask me about:
                     placeholder="Ask about sustainability tips..."
                     onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && sendMessage()}
                     disabled={isLoading}
-                    className="flex-1 px-3 py-2 border border-carbon-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-eco-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <Button 
                     onClick={sendMessage}
                     disabled={isLoading || !inputMessage.trim()}
-                    className="bg-eco-500 hover:bg-eco-600"
+                    className="bg-blue-600 hover:bg-blue-700 font-medium"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
@@ -372,7 +571,18 @@ How can I help you reduce your carbon footprint today? Ask me about:
               </div>
             </CardContent>
           </Card>
-        </TiltCard>
+        </div>
+
+      {/* Professional Back Button */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <Button
+          onClick={() => navigate('/dashboard')}
+          className="bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 border border-gray-300 hover:border-gray-400 shadow-md hover:shadow-lg transition-all duration-200 font-medium"
+          size="sm"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Button>
       </div>
     </div>
   )

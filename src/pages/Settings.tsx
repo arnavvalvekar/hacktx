@@ -3,14 +3,16 @@ import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TiltCard } from '@/components/TiltCard'
-import { Settings as SettingsIcon, User, Palette, Database, Shield, Bell, Globe, Key, CheckCircle, Save } from 'lucide-react'
+import { Settings as SettingsIcon, User, Palette, Database, Shield, Bell, Globe, Key, CheckCircle, Save, ArrowLeft } from 'lucide-react'
 import { nessieService } from '@/services/nessieService'
 import { useAuth0 } from '@auth0/auth0-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useNavigate } from 'react-router-dom'
 
 export default function Settings() {
   const { user, isAuthenticated } = useAuth0()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [nessieStatus, setNessieStatus] = useState<any>(null)
   const [settings, setSettings] = useState({
     theme: 'light',
@@ -506,6 +508,18 @@ export default function Settings() {
             </Card>
           </TiltCard>
         </motion.div>
+      </div>
+
+      {/* Professional Back Button */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <Button
+          onClick={() => navigate('/dashboard')}
+          className="bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm"
+          size="sm"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Button>
       </div>
     </div>
   )
