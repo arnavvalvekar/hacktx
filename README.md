@@ -1,6 +1,6 @@
 # 🌱 EcoFin Carbon - Premium Sustainable Finance Platform
 
-**Built for Capital One Hackathon** | **HackTX 2024**
+**Built for Capital One Hackathon** | **HackTX 2025**
 
 EcoFin Carbon is a comprehensive web application that estimates the CO₂ footprint of each user transaction and turns it into actionable, eco-friendly finance insights. Built with Capital One's Nessie API, Auth0 authentication, MongoDB Atlas, and a hybrid emissions engine.
 
@@ -27,7 +27,7 @@ EcoFin Carbon helps people see the environmental impact of their spending and le
 - **Confidence scoring** (high/medium/low)
 
 ### **🤖 AI-Powered Eco Coach**
-- **Claude 3 Sonnet** integration for personalized recommendations
+- **Google Gemini** integration for personalized recommendations
 - **Context-aware responses** based on spending patterns
 - **Actionable suggestions** with impact estimates
 - **Chat history** and conversation management
@@ -59,7 +59,7 @@ EcoFin Carbon helps people see the environmental impact of their spending and le
 - **MongoDB Atlas** with Mongoose ODM
 - **Auth0 JWT** verification middleware
 - **Capital One Nessie API** integration
-- **Anthropic Claude** AI integration
+- **Google Gemini** AI integration
 
 ### **Database Models**
 - **User** - Auth0 profiles and preferences
@@ -74,19 +74,16 @@ EcoFin Carbon helps people see the environmental impact of their spending and le
 - MongoDB Atlas account
 - Auth0 account
 - Capital One Nessie API key
-- Anthropic API key
+- Google Gemini API key
 
 ### **2. Installation**
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd ecofin-carbon
+cd hacktx
 
-# Install dependencies
-npm install
-cd src && npm install
-cd ../server && npm install
-cd ..
+# Install all dependencies (workspace setup)
+npm run install:all
 ```
 
 ### **3. Auth0 Setup**
@@ -116,7 +113,7 @@ cp env.example .env
 VITE_AUTH0_DOMAIN=your-domain.auth0.com
 VITE_AUTH0_CLIENT_ID=your-client-id
 VITE_AUTH0_AUDIENCE=https://ecofin-carbon-api
-VITE_API_BASE=http://localhost:8080/api
+VITE_API_BASE=/api
 
 # Backend variables:
 AUTH0_DOMAIN=your-domain.auth0.com
@@ -124,7 +121,8 @@ JWT_AUDIENCE=https://ecofin-carbon-api
 JWT_ISSUER=https://your-domain.auth0.com/
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ecofin-carbon
 NESSIE_API_KEY=your-capital-one-nessie-api-key
-LLM_API_KEY=your-anthropic-or-openai-api-key
+LLM_API_KEY=your-google-gemini-api-key
+PORT=3003
 ```
 
 ### **5. Run the Application**
@@ -138,9 +136,9 @@ npm run dev
 ```
 
 ### **6. Access the Application**
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8080
-- **Health Check**: http://localhost:8080/health
+- **Frontend**: http://localhost:3000 (Vite dev server)
+- **Backend API**: http://localhost:3003
+- **Health Check**: http://localhost:3003/health
 
 ### **7. Quick Local Verification**
 1. Visit http://localhost:3000
@@ -186,21 +184,32 @@ npm run dev
 
 ## 🧮 **Carbon Calculation Methods**
 
-### **1. Unit-Based (High Confidence)**
-- **Fuel**: Gallons × EPA emission factors
-- **Electricity**: kWh × regional grid intensity
-- **Air Travel**: Passenger-miles × ICAO factors
-- **Food**: Kilograms × lifecycle study factors
+### **1. Spend-Based Estimation (Primary Method)**
+- **Category mapping**: Automatic merchant classification via MCC codes
+- **Emission factors**: kgCO₂e per dollar spent by category
+- **Dollar amount × category factor**: Pragmatic estimation approach
+- **Confidence scoring**: Based on category specificity and data quality
 
-### **2. Spend-Based (Medium Confidence)**
-- **Category mapping**: Automatic merchant classification
-- **Lifecycle factors**: EXIOBASE economic data
-- **Dollar amount × category factor**: Pragmatic estimation
+### **2. Category-Specific Factors**
+- **Restaurant**: 0.80 kgCO₂e per $ (food service & dining)
+- **Grocery**: 0.45 kgCO₂e per $ (supermarkets & food stores)
+- **Fashion**: 1.60 kgCO₂e per $ (clothing & apparel)
+- **Electronics**: 0.70 kgCO₂e per $ (tech & gadgets)
+- **Transport**: 2.50 kgCO₂e per $ (gas, rideshare, transit)
+- **Travel**: 3.20 kgCO₂e per $ (flights, hotels, tourism)
+- **Entertainment**: 0.55 kgCO₂e per $ (movies, events, games)
+- **Utilities**: 0.30 kgCO₂e per $ (electricity, water, gas)
+- **General**: 0.35 kgCO₂e per $ (default for unknown categories)
 
-### **3. Specialized Logic (Variable Confidence)**
-- **Gas stations**: Estimate gallons from amount
-- **Airlines**: Estimate passenger-miles from amount
-- **Utilities**: Direct energy consumption mapping
+### **3. MCC Code Mapping**
+- **5812**: Restaurant (eating places and restaurants)
+- **5411**: Grocery (grocery stores, supermarkets)
+- **5651**: Fashion (clothing stores)
+- **5732**: Electronics (electronics stores)
+- **4111**: Transport (transportation services)
+- **4511**: Travel (airlines, air carriers)
+- **7999**: Entertainment (recreation services)
+- **4900**: Utilities (utilities)
 
 ## 🎨 **Design System**
 
@@ -235,14 +244,15 @@ npm run dev
 2. **Auth0 Login** → Secure authentication flow
 3. **Dashboard** → Real-time carbon metrics and CarbonOrbit chart
 4. **Import Transactions** → Sync with Capital One Nessie API
-5. **Calculate Emissions** → Hybrid estimation engine
+5. **Calculate Emissions** → Spend-based estimation engine
 6. **AI Coach** → Ask questions and get personalized recommendations
 7. **Insights** → Detailed analytics and trend analysis
+8. **Methodology** → Transparent explanation of carbon calculation methods
 
 ## 🏁 **Hackathon Success Criteria**
 
 ### **✅ Innovation**
-- Hybrid carbon estimation engine
+- Spend-based carbon estimation engine
 - AI-powered sustainability coaching
 - Capital One Nessie API integration
 - Portfolio-inspired animations
@@ -304,7 +314,7 @@ This project is licensed under the MIT License.
 
 - **Capital One** for the Nessie API
 - **Auth0** for authentication services
-- **Anthropic** for Claude AI integration
+- **Google** for Gemini AI integration
 - **MongoDB** for database hosting
 - **HackTX** for the hackathon platform
 
