@@ -6,7 +6,7 @@ EcoFin Carbon is a comprehensive web application that estimates the CO₂ footpr
 
 ## ✨ **Product Pitch**
 
-EcoFin Carbon helps people see the environmental impact of their spending and learn to finance life more sustainably. It analyzes transactions, estimates kgCO₂e, and surfaces smart suggestions and rewards to nudge greener choices—without losing sight of budgets and goals.
+EcoFin Carbon helps people see the environmental impact of their spending and learn to finance life more sustainably. It analyzes transactions, estimates kgCO₂e, and surfaces smart suggestions and rewards to nudge greener choices without losing sight of budgets and goals.
 
 ## 🏆 **Key Features**
 
