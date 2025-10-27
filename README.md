@@ -1,6 +1,6 @@
 # 🌱 EcoFin Carbon - Premium Sustainable Finance Platform
 
-**Built for Capital One Hackathon** | **HackTX 2025**
+**Winner of HackTX 2025 - Best Capital One Hack**
 
 EcoFin Carbon is a comprehensive web application that estimates the CO₂ footprint of each user transaction and turns it into actionable, eco-friendly finance insights. Built with Capital One's Nessie API, Auth0 authentication, MongoDB Atlas, and a hybrid emissions engine.
 
